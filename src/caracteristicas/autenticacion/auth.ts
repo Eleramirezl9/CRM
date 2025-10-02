@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
           name: user.nombre,
           email: user.correo,
           rol: (user.rol?.nombre as 'administrador' | 'bodega' | 'sucursal') ?? 'sucursal',
-          sucursalId: user.sucursalGerenteId ? String(user.sucursalGerenteId) : null,
+          sucursalId: user.sucursalGerente?.id ? String(user.sucursalGerente.id) : null,
         } as any
       },
     }),
