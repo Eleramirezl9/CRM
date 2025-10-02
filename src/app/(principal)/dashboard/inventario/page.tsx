@@ -4,8 +4,8 @@ import AlertasStock from './alertas-stock'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/compartido/componentes/ui/tabs'
 
 export default async function InventarioPage() {
-  const { consolidado } = await obtenerInventarioGlobal()
-  const { alertas } = await obtenerAlertasStockCritico()
+  const { consolidado = [] } = await obtenerInventarioGlobal()
+  const { alertas = [] } = await obtenerAlertasStockCritico()
   
   return (
     <div className="space-y-6">
@@ -25,7 +25,7 @@ export default async function InventarioPage() {
         </TabsList>
         
         <TabsContent value="consolidado" className="mt-6">
-          <InventarioVista consolidado={consolidado} />
+          <InventarioVista consolidado={consolidado as any} />
         </TabsContent>
         
         <TabsContent value="movimientos" className="mt-6">
