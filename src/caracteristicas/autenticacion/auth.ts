@@ -41,6 +41,7 @@ export const authOptions: NextAuthOptions = {
           sucursalId: user.sucursalGerente?.id ? String(user.sucursalGerente.id) : null,
         } as any
       },
+      
     }),
   ],
   callbacks: {
