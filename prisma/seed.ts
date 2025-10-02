@@ -36,7 +36,7 @@ async function main() {
   })
 
   // Crear empresa
-  console.log('🏢 Creando empresa...')
+  console.log(' Creando empresa...')
   const empresa = await prisma.empresa.create({
     data: {
       nombre: 'Mi Empresa Demo',
