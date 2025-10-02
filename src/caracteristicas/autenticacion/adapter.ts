@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export function CustomPrismaAdapter(): Adapter {
   return {
     // Users
-    async createUser(user) {
+    async createUser(user: any) {
       const created = await prisma.usuario.create({
         data: {
           nombre: user.name ?? '',
@@ -17,15 +17,15 @@ export function CustomPrismaAdapter(): Adapter {
       })
       return mapToAdapterUser(created)
     },
-    async getUser(id) {
+    async getUser(id: string) {
       const u = await prisma.usuario.findUnique({ where: { id: Number(id) }, include: { sucursalGerente: true, rol: true } })
       return u ? mapToAdapterUser(u) : null
     },
-    async getUserByEmail(email) {
+    async getUserByEmail(email: string) {
       const u = await prisma.usuario.findUnique({ where: { correo: email }, include: { sucursalGerente: true, rol: true } })
       return u ? mapToAdapterUser(u) : null
     },
-    async updateUser(user) {
+    async updateUser(user: any) {
       const u = await prisma.usuario.update({
         where: { id: Number(user.id) },
         data: { nombre: user.name ?? undefined, correo: user.email ?? undefined },
@@ -33,7 +33,7 @@ export function CustomPrismaAdapter(): Adapter {
       })
       return mapToAdapterUser(u)
     },
-    async deleteUser(userId) {
+    async deleteUser(userId: string) {
       await prisma.usuario.delete({ where: { id: Number(userId) } })
       return null
     },
@@ -55,7 +55,7 @@ export function CustomPrismaAdapter(): Adapter {
   }
 }
 
-function mapToAdapterUser(u: any): AdapterUser {
+function mapToAdapterUser(u: any): any {
   return {
     id: String(u.id),
     name: u.nombre,
