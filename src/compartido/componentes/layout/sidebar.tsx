@@ -43,7 +43,7 @@ export default function Sidebar({ role }: { role: 'administrador' | 'bodega' | '
             return (
               <Link 
                 key={l.href} 
-                href={l.href}
+                href={l.href as any}
                 prefetch={true}
                 className={cn(
                   "block px-3 py-2 rounded transition-colors duration-150",

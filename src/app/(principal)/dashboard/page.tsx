@@ -157,7 +157,7 @@ function KpiCard({ title, value, href, trend, alert }: {
   alert?: boolean
 }) {
   return (
-    <Link href={href}>
+    <Link href={href as any}>
       <Card className={`hover:shadow-lg transition-shadow ${alert ? 'border-destructive' : ''}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
