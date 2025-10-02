@@ -91,7 +91,7 @@ export async function obtenerKpisDashboard() {
 
 export async function obtenerAlertasDashboard() {
   try {
-    const alertas = []
+    const alertas: any[] = []
     
     // Productos con stock crítico
     const stockCritico = await prisma.inventario.findMany({
@@ -168,11 +168,12 @@ export async function obtenerResumenSucursales() {
       const stockTotal = suc.inventarios.reduce((sum, inv) => sum + inv.cantidadActual, 0)
       const productosActivos = suc.inventarios.filter(inv => inv.cantidadActual > 0).length
       
+      const metaVentasNum = parseFloat(suc.metaVentas.toString())
       return {
         nombre: suc.nombre,
         ventasMes,
-        metaVentas: parseFloat(suc.metaVentas.toString()),
-        cumplimiento: suc.metaVentas > 0 ? (ventasMes / parseFloat(suc.metaVentas.toString())) * 100 : 0,
+        metaVentas: metaVentasNum,
+        cumplimiento: metaVentasNum > 0 ? (ventasMes / metaVentasNum) * 100 : 0,
         stockTotal,
         productosActivos,
       }
