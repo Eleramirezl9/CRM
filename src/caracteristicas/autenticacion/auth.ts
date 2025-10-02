@@ -18,13 +18,20 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.correo || !credentials?.password) return null
+        if (!credentials?.correo || !credentials?.password) {
+          console.log('❌ Credenciales vacías')
+          return null
+        }
         const user = await prisma.usuario.findUnique({
           where: { correo: credentials.correo },
           include: { rol: true, sucursalGerente: true },
         })
-        if (!user) return null
+        if (!user) {
+          console.log('❌ Usuario no encontrado:', credentials.correo)
+          return null
+        }
         const ok = await bcrypt.compare(credentials.password, user.contrasenaHash)
+        console.log('🔐 Comparación de contraseña:', ok)
         if (!ok) return null
         return {
           id: String(user.id),
