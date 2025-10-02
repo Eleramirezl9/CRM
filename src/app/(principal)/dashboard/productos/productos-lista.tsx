@@ -76,7 +76,7 @@ export default function ProductosLista({ productos }: { productos: Producto[] })
                   <TableCell>${parseFloat(producto.costoUnitario.toString()).toFixed(2)}</TableCell>
                   <TableCell>${parseFloat(producto.precioVenta.toString()).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant={parseFloat(calcularMargen(producto.costoUnitario, producto.precioVenta)) > 30 ? 'success' : 'warning'}>
+                    <Badge variant={parseFloat(calcularMargen(producto.costoUnitario, producto.precioVenta) as string) > 30 ? 'success' : 'warning'}>
                       {calcularMargen(producto.costoUnitario, producto.precioVenta)}%
                     </Badge>
                   </TableCell>
