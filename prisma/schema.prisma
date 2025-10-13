@@ -11,167 +11,179 @@ datasource db {
 model Role {
   id        Int       @id @default(autoincrement())
   nombre    String    @unique
-  usuarios  Usuario[]
   createdAt DateTime  @default(now()) @map("creado_at")
   updatedAt DateTime  @updatedAt @map("actualizado_at")
+  usuarios  Usuario[]
+
   @@map("roles")
 }
 
 model Usuario {
-  id            Int       @id @default(autoincrement())
-  correo        String    @unique
-  nombre        String
-  contrasenaHash String   @map("contrasena_hash")
-  rol           Role      @relation(fields: [rolId], references: [id])
-  rolId         Int       @map("rol_id")
-  sucursalGerente Sucursal? @relation("GerenteSucursal")
-  createdAt     DateTime  @default(now()) @map("creado_at")
-  updatedAt     DateTime  @updatedAt @map("actualizado_at")
-  enviosCreados Envio[]
-  ventas        Venta[]
-  movimientos   MovimientoInventario[]
-  notificaciones Notificacion[]
+  id              Int                    @id @default(autoincrement())
+  correo          String                 @unique
+  nombre          String
+  contrasenaHash  String                 @map("contrasena_hash")
+  rolId           Int                    @map("rol_id")
+  createdAt       DateTime               @default(now()) @map("creado_at")
+  updatedAt       DateTime               @updatedAt @map("actualizado_at")
+  enviosCreados   Envio[]
+  movimientos     MovimientoInventario[]
+  notificaciones  Notificacion[]
+  sucursalGerente Sucursal?              @relation("GerenteSucursal")
+  rol             Role                   @relation(fields: [rolId], references: [id])
+  ventas          Venta[]
+
   @@map("usuarios")
 }
 
 model Empresa {
-  id           String    @id @default(cuid())
-  nombre       String
-  logoUrl      String?   @map("logo_url")
-  datosFiscales Json?    @map("datos_fiscales")
-  sucursales   Sucursal[]
-  envios       Envio[]
-  createdAt    DateTime  @default(now()) @map("creado_at")
-  updatedAt    DateTime  @updatedAt @map("actualizado_at")
+  id            String     @id @default(cuid())
+  nombre        String
+  logoUrl       String?    @map("logo_url")
+  datosFiscales Json?      @map("datos_fiscales")
+  createdAt     DateTime   @default(now()) @map("creado_at")
+  updatedAt     DateTime   @updatedAt @map("actualizado_at")
+  envios        Envio[]
+  sucursales    Sucursal[]
+
   @@map("empresas")
 }
 
 model Sucursal {
-  id        String    @id @default(cuid())
-  empresa   Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  empresaId String    @map("empresa_id")
-  nombre    String
-  direccion String?
-  gerente   Usuario?  @relation("GerenteSucursal", fields: [gerenteId], references: [id])
-  gerenteId Int?      @unique @map("gerente_usuario_id")
-  metaVentas Decimal  @default(0) @map("meta_ventas") @db.Decimal(12, 2)
-  createdAt DateTime  @default(now()) @map("creado_at")
-  updatedAt DateTime  @updatedAt @map("actualizado_at")
-  inventarios Inventario[]
-  ventas      Venta[]
-  enviosOrigen  Envio[] @relation("EnvioOrigen")
-  enviosDestino Envio[] @relation("EnvioDestino")
+  id            String       @id @default(cuid())
+  empresaId     String       @map("empresa_id")
+  nombre        String
+  direccion     String?
+  gerenteId     Int?         @unique @map("gerente_usuario_id")
+  metaVentas    Decimal      @default(0) @map("meta_ventas") @db.Decimal(12, 2)
+  createdAt     DateTime     @default(now()) @map("creado_at")
+  updatedAt     DateTime     @updatedAt @map("actualizado_at")
+  enviosDestino Envio[]      @relation("EnvioDestino")
+  enviosOrigen  Envio[]      @relation("EnvioOrigen")
+  inventarios   Inventario[]
+  empresa       Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  gerente       Usuario?     @relation("GerenteSucursal", fields: [gerenteId], references: [id])
+  ventas        Venta[]
+
   @@map("sucursales")
 }
 
 model Producto {
-  id            String    @id @default(cuid())
-  sku           String    @unique
+  id            String                 @id @default(cuid())
+  sku           String                 @unique
   nombre        String
   descripcion   String?
-  costoUnitario Decimal   @map("costo_unitario") @db.Decimal(12, 2)
-  precioVenta   Decimal   @map("precio_venta") @db.Decimal(12, 2)
-  unidadMedida  String?   @map("unidad_medida")
-  createdAt     DateTime  @default(now()) @map("fecha_creacion")
-  updatedAt     DateTime  @updatedAt @map("actualizado_at")
-  inventarios Inventario[]
-  envioItems  EnvioItem[]
-  ventaItems  VentaItem[]
-  movimientos MovimientoInventario[]
+  costoUnitario Decimal                @map("costo_unitario") @db.Decimal(12, 2)
+  precioVenta   Decimal                @map("precio_venta") @db.Decimal(12, 2)
+  unidadMedida  String?                @map("unidad_medida")
+  createdAt     DateTime               @default(now()) @map("fecha_creacion")
+  updatedAt     DateTime               @updatedAt @map("actualizado_at")
+  envioItems    EnvioItem[]
+  inventarios   Inventario[]
+  movimientos   MovimientoInventario[]
+  ventaItems    VentaItem[]
+
   @@map("productos")
 }
 
 model Inventario {
-  id             Int      @id @default(autoincrement())
-  sucursal       Sucursal @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
-  sucursalId     String   @map("sucursal_id")
-  producto       Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
-  productoId     String   @map("producto_id")
-  cantidadActual Int      @default(0) @map("cantidad_actual")
-  stockMinimo    Int      @default(0) @map("stock_minimo")
-  updatedAt      DateTime @updatedAt @map("actualizado_at")
-  movimientos MovimientoInventario[]
+  id             Int                    @id @default(autoincrement())
+  sucursalId     String                 @map("sucursal_id")
+  productoId     String                 @map("producto_id")
+  cantidadActual Int                    @default(0) @map("cantidad_actual")
+  stockMinimo    Int                    @default(0) @map("stock_minimo")
+  updatedAt      DateTime               @updatedAt @map("actualizado_at")
+  producto       Producto               @relation(fields: [productoId], references: [id])
+  sucursal       Sucursal               @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+  movimientos    MovimientoInventario[]
+
   @@unique([sucursalId, productoId])
   @@map("inventarios")
 }
 
 model MovimientoInventario {
-  id          Int        @id @default(autoincrement())
-  inventario  Inventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
-  inventarioId Int       @map("inventario_id")
-  tipo        String
-  cantidad    Int
-  motivo      String?
-  producto    Producto   @relation(fields: [productoId], references: [id])
-  productoId  String     @map("producto_id")
-  creador     Usuario?   @relation(fields: [creadorId], references: [id])
-  creadorId   Int?       @map("creado_por")
-  createdAt   DateTime   @default(now()) @map("creado_at")
+  id           Int        @id @default(autoincrement())
+  inventarioId Int        @map("inventario_id")
+  tipo         String
+  cantidad     Int
+  motivo       String?
+  productoId   String     @map("producto_id")
+  creadorId    Int?       @map("creado_por")
+  createdAt    DateTime   @default(now()) @map("creado_at")
+  creador      Usuario?   @relation(fields: [creadorId], references: [id])
+  inventario   Inventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+  producto     Producto   @relation(fields: [productoId], references: [id])
+
   @@map("movimientos_inventario")
 }
 
 model Envio {
-  id               String    @id @default(cuid())
-  empresa          Empresa   @relation(fields: [empresaId], references: [id])
-  empresaId        String    @map("empresa_id")
-  sucursalOrigen   Sucursal  @relation("EnvioOrigen", fields: [sucursalOrigenId], references: [id])
-  sucursalOrigenId String    @map("sucursal_origen_id")
-  sucursalDestino  Sucursal  @relation("EnvioDestino", fields: [sucursalDestinoId], references: [id])
-  sucursalDestinoId String   @map("sucursal_destino_id")
-  estado           String    @default("pendiente")
-  fechaPlanificada DateTime? @map("fecha_planificada") @db.Date
-  fechaEnvio       DateTime? @map("fecha_envio")
-  fechaEntrega     DateTime? @map("fecha_entrega")
-  creador          Usuario?  @relation(fields: [creadorId], references: [id])
-  creadorId        Int?      @map("creado_por")
-  createdAt        DateTime  @default(now()) @map("creado_at")
-  updatedAt        DateTime  @updatedAt @map("actualizado_at")
-  items EnvioItem[]
+  id                String      @id @default(cuid())
+  empresaId         String      @map("empresa_id")
+  sucursalOrigenId  String      @map("sucursal_origen_id")
+  sucursalDestinoId String      @map("sucursal_destino_id")
+  estado            String      @default("pendiente")
+  fechaPlanificada  DateTime?   @map("fecha_planificada") @db.Date
+  fechaEnvio        DateTime?   @map("fecha_envio")
+  fechaEntrega      DateTime?   @map("fecha_entrega")
+  creadorId         Int?        @map("creado_por")
+  createdAt         DateTime    @default(now()) @map("creado_at")
+  updatedAt         DateTime    @updatedAt @map("actualizado_at")
+  items             EnvioItem[]
+  creador           Usuario?    @relation(fields: [creadorId], references: [id])
+  empresa           Empresa     @relation(fields: [empresaId], references: [id])
+  sucursalDestino   Sucursal    @relation("EnvioDestino", fields: [sucursalDestinoId], references: [id])
+  sucursalOrigen    Sucursal    @relation("EnvioOrigen", fields: [sucursalOrigenId], references: [id])
+
   @@map("envios")
 }
 
 model EnvioItem {
-  envio              Envio    @relation(fields: [envioId], references: [id], onDelete: Cascade)
   envioId            String   @map("envio_id")
-  producto           Producto @relation(fields: [productoId], references: [id])
   productoId         String   @map("producto_id")
   cantidadSolicitada Int      @map("cantidad_solicitada")
   cantidadEnviada    Int?     @map("cantidad_enviada")
   cantidadRecibida   Int?     @map("cantidad_recibida")
+  envio              Envio    @relation(fields: [envioId], references: [id], onDelete: Cascade)
+  producto           Producto @relation(fields: [productoId], references: [id])
+
   @@id([envioId, productoId])
   @@map("envio_items")
 }
 
 model Venta {
-  id          String    @id @default(cuid())
-  sucursal    Sucursal  @relation(fields: [sucursalId], references: [id])
-  sucursalId  String    @map("sucursal_id")
-  vendedor    Usuario?  @relation(fields: [vendedorId], references: [id])
-  vendedorId  Int?      @map("usuario_id")
-  totalVenta  Decimal   @map("total_venta") @db.Decimal(12, 2)
-  metodoPago  String?   @map("metodo_pago")
-  createdAt   DateTime  @default(now()) @map("creado_at")
-  items VentaItem[]
+  id         String      @id @default(cuid())
+  sucursalId String      @map("sucursal_id")
+  vendedorId Int?        @map("usuario_id")
+  totalVenta Decimal     @map("total_venta") @db.Decimal(12, 2)
+  metodoPago String?     @map("metodo_pago")
+  createdAt  DateTime    @default(now()) @map("creado_at")
+  items      VentaItem[]
+  sucursal   Sucursal    @relation(fields: [sucursalId], references: [id])
+  vendedor   Usuario?    @relation(fields: [vendedorId], references: [id])
+
   @@map("ventas")
 }
 
 model VentaItem {
   id             Int      @id @default(autoincrement())
-  venta          Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
   ventaId        String   @map("venta_id")
-  producto       Producto @relation(fields: [productoId], references: [id])
   productoId     String   @map("producto_id")
   cantidad       Int
   precioUnitario Decimal  @map("precio_unitario") @db.Decimal(12, 2)
+  producto       Producto @relation(fields: [productoId], references: [id])
+  venta          Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
   @@map("venta_items")
 }
 
 model Notificacion {
   id        Int      @id @default(autoincrement())
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
   usuarioId Int      @map("usuario_id")
   mensaje   String
   leida     Boolean  @default(false)
   createdAt DateTime @default(now()) @map("creado_at")
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
   @@map("notificaciones")
 }
