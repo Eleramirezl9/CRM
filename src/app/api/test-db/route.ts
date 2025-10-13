@@ -3,34 +3,36 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    // Verificar conexión a la base de datos
-    const rolesCount = await prisma.role.count()
-    const usuariosCount = await prisma.usuario.count()
+    // Probar conexión a la base de datos
+    const userCount = await prisma.usuario.count()
     
-    // Verificar si existe el admin
-    const admin = await prisma.usuario.findUnique({
+    // Probar autenticación básica
+    const adminUser = await prisma.usuario.findUnique({
       where: { correo: 'admin@empresa.com' },
-      include: { rol: true },
+      include: { rol: true }
     })
-    
+
     return NextResponse.json({
       success: true,
-      database: 'connected',
-      roles: rolesCount,
-      usuarios: usuariosCount,
-      adminExists: !!admin,
-      adminData: admin ? {
-        correo: admin.correo,
-        nombre: admin.nombre,
-        rol: admin.rol?.nombre,
-        hashLength: admin.contrasenaHash.length,
-      } : null,
+      message: '✅ Conexión a base de datos exitosa',
+      data: {
+        totalUsers: userCount,
+        adminUser: adminUser ? {
+          id: adminUser.id,
+          correo: adminUser.correo,
+          nombre: adminUser.nombre,
+          rol: adminUser.rol?.nombre
+        } : null,
+        environment: process.env.NODE_ENV,
+        database: 'Connected'
+      }
     })
-  } catch (error: any) {
+  } catch (error) {
+    console.error('❌ Error en test-db:', error)
     return NextResponse.json({
       success: false,
-      error: error.message,
-      database: 'disconnected',
+      message: '❌ Error de conexión a base de datos',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
