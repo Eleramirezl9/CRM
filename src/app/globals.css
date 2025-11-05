@@ -3,25 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  /* Fondo principal - Crema más intenso #FFF8F0 */
+  --background: 30 100% 97%;
+
+  /* Texto principal - Gris oscuro cálido */
+  --foreground: 20 10% 20%;
+
+  /* Tarjetas - Blanco crema claro #FFFBF7 */
+  --card: 30 100% 98.5%;
+  --card-foreground: 20 10% 20%;
+
+  /* Popovers y dropdowns */
+  --popover: 30 100% 98.5%;
+  --popover-foreground: 20 10% 20%;
+
+  /* Color primario - Terracota/Caramelo suave */
+  --primary: 25 75% 55%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Color secundario - Beige cremoso */
+  --secondary: 35 40% 90%;
+  --secondary-foreground: 20 10% 20%;
+
+  /* Elementos silenciados - Beige cálido */
+  --muted: 35 35% 88%;
+  --muted-foreground: 20 10% 42%;
+
+  /* Acentos - Crema dorado */
+  --accent: 38 50% 86%;
+  --accent-foreground: 20 10% 20%;
+
+  /* Destructivo - Rojo terracota suave */
+  --destructive: 0 70% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Bordes - Beige medio */
+  --border: 35 30% 85%;
+
+  /* Inputs - Beige cremoso */
+  --input: 35 35% 88%;
+
+  /* Anillo de foco - Terracota */
+  --ring: 25 75% 55%;
+
   --radius: 0.5rem;
 }
 
