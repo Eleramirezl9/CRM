@@ -2,10 +2,22 @@ import { forwardRef } from 'react'
 import type { SelectHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/compartido/lib/utils'
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {}
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+  onValueChange?: (value: string) => void
+  onChange?: React.ChangeEventHandler<HTMLSelectElement>
+}
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ className, children, onValueChange, onChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      if (onValueChange) {
+        onValueChange(e.target.value)
+      }
+      if (onChange) {
+        onChange(e)
+      }
+    }
+
     return (
       <select
         className={cn(
@@ -13,6 +25,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className
         )}
         ref={ref}
+        onChange={handleChange}
         {...props}
       >
         {children}
@@ -24,7 +37,16 @@ Select.displayName = 'Select'
 
 // Componentes adicionales para compatibilidad con shadcn/ui
 const SelectTrigger = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ className, children, onValueChange, onChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      if (onValueChange) {
+        onValueChange(e.target.value)
+      }
+      if (onChange) {
+        onChange(e)
+      }
+    }
+
     return (
       <select
         className={cn(
@@ -32,6 +54,7 @@ const SelectTrigger = forwardRef<HTMLSelectElement, SelectProps>(
           className
         )}
         ref={ref}
+        onChange={handleChange}
         {...props}
       >
         {children}
@@ -45,8 +68,8 @@ const SelectContent = ({ children, ...props }: { children: ReactNode }) => {
   return <>{children}</>
 }
 
-const SelectItem = ({ value, children, ...props }: { value: string; children: ReactNode }) => {
-  return <option value={value} {...props}>{children}</option>
+const SelectItem = ({ value, children, disabled, ...props }: { value: string; children: ReactNode; disabled?: boolean }) => {
+  return <option value={value} disabled={disabled} {...props}>{children}</option>
 }
 
 const SelectValue = ({ placeholder }: { placeholder?: string }) => {

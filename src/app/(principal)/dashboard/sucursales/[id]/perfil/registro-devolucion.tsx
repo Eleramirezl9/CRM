@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/component
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/compartido/componentes/ui/select'
+import { Select, SelectItem } from '@/compartido/componentes/ui/select'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import { registrarDevolucion } from '@/caracteristicas/sucursales/acciones'
 import { prisma } from '@/lib/prisma'
@@ -145,27 +145,27 @@ export default function RegistroDevolucion({ sucursalId, operacionId }: Registro
             {/* Producto */}
             <div className="space-y-2">
               <Label htmlFor="producto">Producto</Label>
-              <Select value={productoId} onValueChange={setProductoId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar producto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingProductos ? (
+              <Select id="producto" value={productoId} onValueChange={setProductoId}>
+                {isLoadingProductos ? (
+                  <SelectItem value="" disabled>
+                    Cargando productos...
+                  </SelectItem>
+                ) : productos.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    Seleccionar producto
+                  </SelectItem>
+                ) : (
+                  <>
                     <SelectItem value="" disabled>
-                      Cargando productos...
+                      Seleccionar producto
                     </SelectItem>
-                  ) : productos.length === 0 ? (
-                    <SelectItem value="" disabled>
-                      No hay productos en inventario
-                    </SelectItem>
-                  ) : (
-                    productos.map((item) => (
+                    {productos.map((item) => (
                       <SelectItem key={item.producto.id} value={item.producto.id}>
                         {item.producto.nombre} - Stock: {item.cantidadActual}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
+                    ))}
+                  </>
+                )}
               </Select>
             </div>
 
@@ -217,17 +217,15 @@ export default function RegistroDevolucion({ sucursalId, operacionId }: Registro
             {/* Motivo */}
             <div className="space-y-2">
               <Label htmlFor="motivo">Motivo de la Devolución</Label>
-              <Select value={motivo} onValueChange={setMotivo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar motivo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MOTIVOS.map((motivo) => (
-                    <SelectItem key={motivo.value} value={motivo.value}>
-                      {motivo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select id="motivo" value={motivo} onValueChange={setMotivo}>
+                <SelectItem value="" disabled>
+                  Seleccionar motivo
+                </SelectItem>
+                {MOTIVOS.map((motivo) => (
+                  <SelectItem key={motivo.value} value={motivo.value}>
+                    {motivo.label}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
 
