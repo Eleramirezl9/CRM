@@ -76,6 +76,7 @@ async function main() {
   const bodega = await prisma.sucursal.create({
     data: {
       empresaId: empresa.id,
+      codigoUnico: 'SUC-001',
       nombre: 'Bodega Central',
       direccion: 'Zona Industrial, Bodega 5',
       metaVentas: 0,
@@ -85,6 +86,7 @@ async function main() {
   const sucursal1 = await prisma.sucursal.create({
     data: {
       empresaId: empresa.id,
+      codigoUnico: 'SUC-002',
       nombre: 'Sucursal Centro',
       direccion: 'Av. Central 456, Local 12',
       metaVentas: 50000,
@@ -94,6 +96,7 @@ async function main() {
   const sucursal2 = await prisma.sucursal.create({
     data: {
       empresaId: empresa.id,
+      codigoUnico: 'SUC-003',
       nombre: 'Sucursal Norte',
       direccion: 'Zona Norte 789, Plaza Norte',
       metaVentas: 40000,
@@ -103,6 +106,7 @@ async function main() {
   const sucursal3 = await prisma.sucursal.create({
     data: {
       empresaId: empresa.id,
+      codigoUnico: 'SUC-004',
       nombre: 'Sucursal Sur',
       direccion: 'Zona Sur 321, Centro Comercial',
       metaVentas: 35000,

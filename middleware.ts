@@ -17,21 +17,40 @@ export async function middleware(req: NextRequest) {
   }
 
   const rol = (token as any).rol as 'administrador' | 'bodega' | 'sucursal'
+  const sucursalId = (token as any).sucursalId as string | null
+
+  // Control de acceso específico para sucursales
+  if (rol === 'sucursal' && pathname.includes('/sucursales/')) {
+    // Extraer ID de sucursal de la URL
+    const sucursalMatch = pathname.match(/\/sucursales\/([^\/]+)/)
+    if (sucursalMatch) {
+      const routeSucursalId = sucursalMatch[1]
+      
+      // Si no tiene sucursal asignada o no coincide con la ruta
+      if (!sucursalId || routeSucursalId !== sucursalId) {
+        const url = new URL('/no-autorizado', req.url)
+        return NextResponse.redirect(url)
+      }
+    }
+  }
 
   // Role-based access map
   const roleAccess: Record<string, RegExp[]> = {
     administrador: [
-      /^\/dashboard(\/.*)?$/,
+      /^\/dashboard(\/.*)?$/, // Acceso total
     ],
     bodega: [
       /^\/dashboard(\/)?$/,
       /^\/dashboard\/inventario(\/.*)?$/,
       /^\/dashboard\/envios(\/.*)?$/,
+      /^\/dashboard\/sucursales(\/.*)?$/, // Puede ver todas las sucursales para envíos
     ],
     sucursal: [
       /^\/dashboard(\/)?$/,
       /^\/dashboard\/ventas(\/.*)?$/,
       /^\/dashboard\/inventario(\/.*)?$/,
+      /^\/dashboard\/sucursales\/[^\/]+\/perfil(\/.*)?$/, // Solo su propia sucursal
+      /^\/dashboard\/mi-sucursal(\/.*)?$/, // Redirigir a su sucursal
     ],
   }
 

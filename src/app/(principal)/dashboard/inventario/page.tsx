@@ -21,7 +21,7 @@ export default async function InventarioPage() {
       <Tabs defaultValue="consolidado" className="w-full">
         <TabsList>
           <TabsTrigger value="consolidado">Vista Consolidada</TabsTrigger>
-          <TabsTrigger value="movimientos">Movimientos Recientes</TabsTrigger>
+          <TabsTrigger value="movimientos" data-testid="ver-historial">Movimientos Recientes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="consolidado" className="mt-6">

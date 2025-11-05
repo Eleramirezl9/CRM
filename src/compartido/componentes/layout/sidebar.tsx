@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/compartido/lib/utils'
+import { useCallback } from 'react'
 
 const linksByRole: Record<string, { href: string; label: string }[]> = {
   administrador: [
@@ -11,12 +12,14 @@ const linksByRole: Record<string, { href: string; label: string }[]> = {
     { href: '/dashboard/productos', label: 'Productos' },
     { href: '/dashboard/inventario', label: 'Inventario' },
     { href: '/dashboard/envios', label: 'Envíos' },
+    { href: '/dashboard/sucursales', label: 'Sucursales' },
     { href: '/dashboard/reportes', label: 'Reportes' },
   ],
   bodega: [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/inventario', label: 'Inventario' },
     { href: '/dashboard/envios', label: 'Envíos' },
+    { href: '/dashboard/sucursales', label: 'Sucursales' },
   ],
   sucursal: [
     { href: '/dashboard', label: 'Dashboard' },
@@ -25,13 +28,18 @@ const linksByRole: Record<string, { href: string; label: string }[]> = {
   ],
 }
 
-export default function Sidebar({ role }: { role: 'administrador' | 'bodega' | 'sucursal' }) {
+interface SidebarProps {
+  role: 'administrador' | 'bodega' | 'sucursal'
+  sucursalId?: string | null
+}
+
+export default function Sidebar({ role, sucursalId }: SidebarProps) {
   const pathname = usePathname()
   const links = linksByRole[role] ?? []
-  
-  const handleSignOut = async () => {
+
+  const handleSignOut = useCallback(async () => {
     await signOut({ callbackUrl: '/iniciar-sesion' })
-  }
+  }, [])
   
   return (
     <aside className="border-r bg-white p-4 space-y-4 flex flex-col h-screen">
@@ -56,6 +64,22 @@ export default function Sidebar({ role }: { role: 'administrador' | 'bodega' | '
               </Link>
             )
           })}
+          
+          {/* Enlace especial para gerentes de sucursal */}
+          {role === 'sucursal' && sucursalId && (
+            <Link 
+              href={`/dashboard/sucursales/${sucursalId}/perfil`}
+              prefetch={true}
+              className={cn(
+                "block px-3 py-2 rounded transition-colors duration-150",
+                pathname.includes('/sucursales/') && pathname.includes('/perfil')
+                  ? "bg-blue-100 text-blue-700 font-medium" 
+                  : "hover:bg-gray-100 text-gray-700"
+              )}
+            >
+              🏪 Mi Sucursal
+            </Link>
+          )}
         </nav>
       </div>
       

@@ -2,11 +2,15 @@ import { obtenerKpisDashboard, obtenerAlertasDashboard, obtenerResumenSucursales
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/caracteristicas/autenticacion/auth'
 
 // Revalidar cada 60 segundos
 export const revalidate = 60
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
+  
   // Ejecutar consultas en paralelo para reducir tiempo
   const [{ kpis }, { alertas }, { sucursales }] = await Promise.all([
     obtenerKpisDashboard(),
@@ -142,6 +146,12 @@ export default async function DashboardPage() {
               <div className="text-2xl mb-2">📊</div>
               <div className="text-sm font-medium">Ver Reportes</div>
             </Link>
+            {session?.user.rol === 'administrador' && (
+              <Link href="/dashboard/sucursales" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                <div className="text-2xl mb-2">🏢</div>
+                <div className="text-sm font-medium">Gestionar Sucursales</div>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -50,20 +50,22 @@ model Empresa {
 }
 
 model Sucursal {
-  id            String       @id @default(cuid())
-  empresaId     String       @map("empresa_id")
-  nombre        String
-  direccion     String?
-  gerenteId     Int?         @unique @map("gerente_usuario_id")
-  metaVentas    Decimal      @default(0) @map("meta_ventas") @db.Decimal(12, 2)
-  createdAt     DateTime     @default(now()) @map("creado_at")
-  updatedAt     DateTime     @updatedAt @map("actualizado_at")
-  enviosDestino Envio[]      @relation("EnvioDestino")
-  enviosOrigen  Envio[]      @relation("EnvioOrigen")
-  inventarios   Inventario[]
-  empresa       Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  gerente       Usuario?     @relation("GerenteSucursal", fields: [gerenteId], references: [id])
-  ventas        Venta[]
+  id                 String             @id @default(cuid())
+  empresaId          String             @map("empresa_id")
+  codigoUnico        String             @unique @map("codigo_unico") // SUC-001, SUC-002
+  nombre             String
+  direccion          String?
+  gerenteId          Int?               @unique @map("gerente_usuario_id")
+  metaVentas         Decimal            @default(0) @map("meta_ventas") @db.Decimal(12, 2)
+  createdAt          DateTime           @default(now()) @map("creado_at")
+  updatedAt          DateTime           @updatedAt @map("actualizado_at")
+  enviosDestino      Envio[]            @relation("EnvioDestino")
+  enviosOrigen       Envio[]            @relation("EnvioOrigen")
+  inventarios        Inventario[]
+  empresa            Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  gerente            Usuario?           @relation("GerenteSucursal", fields: [gerenteId], references: [id])
+  ventas             Venta[]
+  operacionesDiarias OperacionDiaria[]
 
   @@map("sucursales")
 }
@@ -82,6 +84,7 @@ model Producto {
   inventarios   Inventario[]
   movimientos   MovimientoInventario[]
   ventaItems    VentaItem[]
+  devoluciones  Devolucion[]
 
   @@map("productos")
 }
@@ -127,6 +130,9 @@ model Envio {
   fechaEnvio        DateTime?   @map("fecha_envio")
   fechaEntrega      DateTime?   @map("fecha_entrega")
   creadorId         Int?        @map("creado_por")
+  confirmadoPor     Int?        @map("confirmado_por")
+  fechaConfirmacion DateTime?   @map("fecha_confirmacion")
+  observaciones     String?
   createdAt         DateTime    @default(now()) @map("creado_at")
   updatedAt         DateTime    @updatedAt @map("actualizado_at")
   items             EnvioItem[]
@@ -186,4 +192,41 @@ model Notificacion {
   usuario   Usuario  @relation(fields: [usuarioId], references: [id])
 
   @@map("notificaciones")
+}
+
+model OperacionDiaria {
+  id                String      @id @default(cuid())
+  sucursalId        String      @map("sucursal_id")
+  fecha             DateTime    @db.Date
+  totalAVender      Decimal     @default(0) @map("total_a_vender") @db.Decimal(12, 2)
+  totalVendido      Decimal     @default(0) @map("total_vendido") @db.Decimal(12, 2)
+  totalCosto        Decimal     @default(0) @map("total_costo") @db.Decimal(12, 2)
+  totalPerdidas     Decimal     @default(0) @map("total_perdidas") @db.Decimal(12, 2)
+  efectivoReal      Decimal     @default(0) @map("efectivo_real") @db.Decimal(12, 2)
+  productosRecibidos Json?      @map("productos_recibidos")
+  productosSobrantes Json?      @map("productos_sobrantes")
+  cerrado           Boolean     @default(false)
+  createdAt         DateTime    @default(now()) @map("creado_at")
+  
+  sucursal          Sucursal    @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+  devoluciones      Devolucion[]
+  
+  @@unique([sucursalId, fecha])
+  @@map("operaciones_diarias")
+}
+
+model Devolucion {
+  id            Int             @id @default(autoincrement())
+  operacionId   String          @map("operacion_id")
+  productoId    String          @map("producto_id")
+  cantidad      Int
+  motivo        String          // "vencido", "dañado", "no_vendido"
+  costoUnitario Decimal         @map("costo_unitario") @db.Decimal(12, 2)
+  costoTotal    Decimal         @map("costo_total") @db.Decimal(12, 2)
+  createdAt     DateTime        @default(now()) @map("creado_at")
+  
+  operacion     OperacionDiaria @relation(fields: [operacionId], references: [id], onDelete: Cascade)
+  producto      Producto        @relation(fields: [productoId], references: [id])
+  
+  @@map("devoluciones")
 }

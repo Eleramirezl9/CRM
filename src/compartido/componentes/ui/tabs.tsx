@@ -1,24 +1,25 @@
 'use client'
 
-import * as React from 'react'
+import { createContext, useState, useContext, forwardRef } from 'react'
+import type { HTMLAttributes, ButtonHTMLAttributes } from 'react'
 import { cn } from '@/compartido/lib/utils'
 
-const TabsContext = React.createContext<{
+const TabsContext = createContext<{
   value: string
   onValueChange: (value: string) => void
 }>({ value: '', onValueChange: () => {} })
 
-interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
+interface TabsProps extends HTMLAttributes<HTMLDivElement> {
   defaultValue?: string
   value?: string
   onValueChange?: (value: string) => void
 }
 
 const Tabs = ({ defaultValue = '', value: controlledValue, onValueChange, children, className, ...props }: TabsProps) => {
-  const [internalValue, setInternalValue] = React.useState(defaultValue)
+  const [internalValue, setInternalValue] = useState(defaultValue)
   const value = controlledValue ?? internalValue
   const handleValueChange = onValueChange ?? setInternalValue
-  
+
   return (
     <TabsContext.Provider value={{ value, onValueChange: handleValueChange }}>
       <div className={cn('w-full', className)} {...props}>
@@ -28,7 +29,7 @@ const Tabs = ({ defaultValue = '', value: controlledValue, onValueChange, childr
   )
 }
 
-const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const TabsList = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
@@ -39,15 +40,15 @@ const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
 )
 TabsList.displayName = 'TabsList'
 
-interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface TabsTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   value: string
 }
 
-const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
+const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
   ({ className, value: triggerValue, ...props }, ref) => {
-    const { value, onValueChange } = React.useContext(TabsContext)
+    const { value, onValueChange } = useContext(TabsContext)
     const isActive = value === triggerValue
-    
+
     return (
       <button
         ref={ref}
@@ -65,16 +66,16 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
 )
 TabsTrigger.displayName = 'TabsTrigger'
 
-interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
+interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
   value: string
 }
 
-const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
+const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
   ({ className, value: contentValue, ...props }, ref) => {
-    const { value } = React.useContext(TabsContext)
-    
+    const { value } = useContext(TabsContext)
+
     if (value !== contentValue) return null
-    
+
     return (
       <div
         ref={ref}

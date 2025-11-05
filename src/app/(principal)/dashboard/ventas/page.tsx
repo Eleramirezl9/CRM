@@ -20,7 +20,7 @@ export default async function VentasPage() {
       <Tabs defaultValue="registro" className="w-full">
         <TabsList>
           <TabsTrigger value="registro">Registrar Venta</TabsTrigger>
-          <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="historial" data-testid="ver-historial">Historial</TabsTrigger>
         </TabsList>
         
         <TabsContent value="registro" className="mt-6">

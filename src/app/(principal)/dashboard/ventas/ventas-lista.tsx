@@ -42,7 +42,7 @@ export default function VentasLista({ ventas }: { ventas: Venta[] }) {
               </TableRow>
             ) : (
               ventas.map((venta) => (
-                <TableRow key={venta.id}>
+                <TableRow key={venta.id} data-testid="venta-reciente">
                   <TableCell className="font-mono text-sm">#{venta.id.slice(0, 8)}</TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm', { locale: es })}

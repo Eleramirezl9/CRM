@@ -1,11 +1,14 @@
 'use client'
 
 import { Badge } from '@/compartido/componentes/ui/badge'
-import { Card, CardContent } from '@/compartido/componentes/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/compartido/componentes/ui/table'
 import { Button } from '@/compartido/componentes/ui/button'
-import { useState } from 'react'
+import { Select } from '@/compartido/componentes/ui/select'
+import { Label } from '@/compartido/componentes/ui/label'
+import { useState, useMemo, useCallback } from 'react'
 import MovimientoDialog from './movimiento-dialog'
+import { useSucursales } from '@/compartido/hooks/useSucursales'
 
 type Consolidado = {
   producto: {
@@ -28,15 +31,53 @@ type Consolidado = {
 export default function InventarioVista({ consolidado }: { consolidado: Consolidado[] }) {
   const [selectedProducto, setSelectedProducto] = useState<Consolidado | null>(null)
   const [showDialog, setShowDialog] = useState(false)
-  
-  const handleMovimiento = (producto: Consolidado) => {
+  const { sucursales } = useSucursales()
+  const [filtroSucursal, setFiltroSucursal] = useState('')
+
+  const handleMovimiento = useCallback((producto: Consolidado) => {
     setSelectedProducto(producto)
     setShowDialog(true)
-  }
+  }, [])
+
+  // Filtrar consolidado por sucursal si está seleccionada (memoizado)
+  const consolidadoFiltrado = useMemo(() => {
+    if (!filtroSucursal) return consolidado
+
+    return consolidado
+      .map(item => ({
+        ...item,
+        sucursales: item.sucursales.filter(s =>
+          s.sucursal.toLowerCase().includes(filtroSucursal.toLowerCase())
+        ),
+      }))
+      .filter(item => item.sucursales.length > 0)
+  }, [consolidado, filtroSucursal])
   
   return (
     <>
       <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <CardTitle>Inventario por Producto</CardTitle>
+            </div>
+            <div className="w-64">
+              <Label>Filtrar por Sucursal</Label>
+              <Select
+                value={filtroSucursal}
+                onChange={(e) => setFiltroSucursal(e.target.value)}
+                data-testid="filtro-sucursal"
+              >
+                <option value="">Todas las sucursales</option>
+                {sucursales.map((suc) => (
+                  <option key={suc.id} value={suc.id}>
+                    {suc.nombre}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -51,18 +92,18 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
               </TableRow>
             </TableHeader>
             <TableBody>
-              {consolidado.length === 0 ? (
+              {consolidadoFiltrado.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No hay productos en inventario
                   </TableCell>
                 </TableRow>
               ) : (
-                consolidado.map((item) => (
+                consolidadoFiltrado.map((item, idx) => (
                   <TableRow key={item.producto.id}>
                     <TableCell className="font-mono text-sm">{item.producto.sku}</TableCell>
                     <TableCell className="font-medium">{item.producto.nombre}</TableCell>
-                    <TableCell>
+                    <TableCell data-testid={`stock-${idx + 1}`}>
                       {item.stockTotal} {item.producto.unidadMedida || 'u'}
                     </TableCell>
                     <TableCell>
@@ -70,7 +111,7 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                     </TableCell>
                     <TableCell>
                       {item.alertaCritica ? (
-                        <Badge variant="destructive">Crítico</Badge>
+                        <Badge variant="destructive" data-testid="alerta-critica">Crítico</Badge>
                       ) : item.stockTotal < item.stockMinimoTotal * 1.5 ? (
                         <Badge variant="warning">Bajo</Badge>
                       ) : (
@@ -79,8 +120,12 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                     </TableCell>
                     <TableCell>
                       <div className="text-xs space-y-1">
-                        {item.sucursales.map((suc, idx) => (
-                          <div key={idx} className={suc.critico ? 'text-destructive font-medium' : ''}>
+                        {item.sucursales.map((suc, sucIdx) => (
+                          <div
+                            key={sucIdx}
+                            className={suc.critico ? 'text-destructive font-medium' : ''}
+                            data-testid="nombre-sucursal"
+                          >
                             {suc.sucursal}: {suc.cantidad}
                           </div>
                         ))}
@@ -91,6 +136,7 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                         variant="outline"
                         size="sm"
                         onClick={() => handleMovimiento(item)}
+                        data-testid={`registrar-movimiento-${idx + 1}`}
                       >
                         Movimiento
                       </Button>
