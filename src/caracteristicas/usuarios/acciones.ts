@@ -113,7 +113,6 @@ export async function crearUsuario(input: CreateUsuarioInput): Promise<ActionRes
     const usuario = await usuarioRepo.create(validated)
 
     // Auditoría
-    const currentUserId = await getCurrentUserId()
     await registrarAuditoria({
       usuarioId: currentUserId,
       accion: 'CREATE_USER',
