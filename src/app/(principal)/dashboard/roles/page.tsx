@@ -10,7 +10,7 @@ import { Button } from '@/compartido/componentes/ui/button'
 import { Shield, Settings } from 'lucide-react'
 
 export default async function RolesPage() {
-  await requireRole('administrador')
+  await requireRole(['administrador'])
 
   const roles = await prisma.role.findMany({
     include: {
