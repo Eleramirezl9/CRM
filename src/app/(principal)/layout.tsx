@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
 import Sidebar from '@/compartido/componentes/layout/sidebar'
 import { redirect } from 'next/navigation'
 import { ReactNode } from 'react'
@@ -8,7 +7,7 @@ import { ReactNode } from 'react'
 export const dynamic = 'force-dynamic'
 
 export default async function PrincipalLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   if (!session) redirect('/iniciar-sesion')
 
   return (

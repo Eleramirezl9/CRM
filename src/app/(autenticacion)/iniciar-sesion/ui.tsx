@@ -22,7 +22,8 @@ export default function LoginForm() {
     })
     setLoading(false)
     if (res?.ok) {
-      router.replace('/dashboard')
+      router.refresh() // Actualizar la sesión del servidor
+      router.push('/dashboard') // Redirigir al dashboard
     } else {
       setError('Credenciales inválidas')
     }

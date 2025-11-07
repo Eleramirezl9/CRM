@@ -66,9 +66,11 @@ export async function obtenerProductos() {
       const stockTotal = p.inventarios.reduce((sum, inv) => sum + inv.cantidadActual, 0)
       const stockMinimoTotal = p.inventarios.reduce((sum, inv) => sum + inv.stockMinimo, 0)
       const stockCritico = stockTotal < stockMinimoTotal
-      
+
       return {
         ...p,
+        costoUnitario: parseFloat(p.costoUnitario.toString()),
+        precioVenta: parseFloat(p.precioVenta.toString()),
         stockTotal,
         stockMinimoTotal,
         stockCritico,

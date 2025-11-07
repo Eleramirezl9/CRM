@@ -1,8 +1,8 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
+import { authOptions } from '@/caracteristicas/autenticacion/server'
 import { z } from 'zod'
 
 // ============= GESTIÓN DE SUCURSALES =============
@@ -18,7 +18,7 @@ const SucursalSchema = z.object({
 
 export async function obtenerSucursales() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado', sucursales: [] }
     }
@@ -74,7 +74,7 @@ export async function obtenerSucursales() {
 
 export async function obtenerSucursalPorId(id: string) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -105,7 +105,7 @@ export async function obtenerSucursalPorId(id: string) {
 
 export async function crearSucursal(data: z.infer<typeof SucursalSchema>) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || session.user.rol !== 'administrador') {
       return { success: false, error: 'No autorizado' }
     }
@@ -152,7 +152,7 @@ export async function crearSucursal(data: z.infer<typeof SucursalSchema>) {
 
 export async function actualizarSucursal(id: string, data: z.infer<typeof SucursalSchema>) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || session.user.rol !== 'administrador') {
       return { success: false, error: 'No autorizado' }
     }
@@ -215,7 +215,7 @@ export async function obtenerGerentes() {
 
 export async function obtenerOperacionDia(sucursalId: string, fecha: Date) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -292,7 +292,7 @@ export async function obtenerOperacionDia(sucursalId: string, fecha: Date) {
 
 export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ productoId: string; cantidadRecibida: number }>) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -408,7 +408,7 @@ export async function registrarDevolucion(
   motivo: string
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -476,7 +476,7 @@ export async function registrarDevolucion(
 
 export async function cerrarOperacionDia(operacionId: string) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -510,7 +510,7 @@ export async function cerrarOperacionDia(operacionId: string) {
 
 export async function obtenerHistorialOperaciones(sucursalId: string, dias: number = 7) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }
@@ -550,7 +550,7 @@ export async function obtenerHistorialOperaciones(sucursalId: string, dias: numb
 
 export async function obtenerEnviosPendientesConfirmacion(sucursalId: string) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'No autorizado' }
     }

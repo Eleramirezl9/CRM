@@ -1,0 +1,66 @@
+{
+  "name": "CRM - Development",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@empresa.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "admin_password",
+      "value": "Admin@2025",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "produccion_email",
+      "value": "produccion@empresa.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "produccion_password",
+      "value": "Produccion@2025",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "bodega_email",
+      "value": "bodega@empresa.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bodega_password",
+      "value": "Bodega@2025",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "sucursal_email",
+      "value": "sucursal@empresa.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sucursal_password",
+      "value": "Sucursal@2025",
+      "type": "secret",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
 import LoginForm from './ui'
 
 export default async function IniciarSesionPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   if (session?.user) {
     redirect('/dashboard')
   }

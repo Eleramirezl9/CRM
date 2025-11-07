@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/compartido/component
 import ConfirmarRecepcion from './confirmar-recepcion'
 import RegistroDevolucion from './registro-devolucion'
 import ResumenDia from './resumen-dia'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
+import { authOptions } from '@/caracteristicas/autenticacion/server'
 
 interface PerfilSucursalPageProps {
   params: {
@@ -18,7 +18,7 @@ interface PerfilSucursalPageProps {
 export const revalidate = 60 // Revalidar cada minuto
 
 export default async function PerfilSucursalPage({ params }: PerfilSucursalPageProps) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   if (!session) {
     notFound()
   }

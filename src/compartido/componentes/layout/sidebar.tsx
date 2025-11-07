@@ -8,28 +8,36 @@ import { useCallback } from 'react'
 
 const linksByRole: Record<string, { href: string; label: string }[]> = {
   administrador: [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/productos', label: 'Productos' },
-    { href: '/dashboard/inventario', label: 'Inventario' },
-    { href: '/dashboard/envios', label: 'Envíos' },
-    { href: '/dashboard/sucursales', label: 'Sucursales' },
-    { href: '/dashboard/reportes', label: 'Reportes' },
+    { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/dashboard/usuarios', label: '👥 Usuarios' },
+    { href: '/dashboard/productos', label: '📦 Productos' },
+    { href: '/dashboard/inventario', label: '📋 Inventario' },
+    { href: '/dashboard/envios', label: '🚚 Envíos' },
+    { href: '/dashboard/ventas', label: '💰 Ventas' },
+    { href: '/dashboard/sucursales', label: '🏢 Sucursales' },
+    { href: '/dashboard/produccion', label: '🏭 Producción' },
+    { href: '/dashboard/reportes', label: '📈 Reportes' },
   ],
   bodega: [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/inventario', label: 'Inventario' },
-    { href: '/dashboard/envios', label: 'Envíos' },
-    { href: '/dashboard/sucursales', label: 'Sucursales' },
+    { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/dashboard/inventario', label: '📋 Inventario' },
+    { href: '/dashboard/envios', label: '🚚 Envíos' },
+    // Nota: Verá las sucursales dentro del módulo de envíos, no como módulo separado
   ],
   sucursal: [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/ventas', label: 'Ventas' },
-    { href: '/dashboard/inventario', label: 'Inventario' },
+    { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/dashboard/ventas', label: '💰 Ventas' },
+    { href: '/dashboard/inventario', label: '📋 Inventario' },
+  ],
+  produccion: [
+    { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/dashboard/produccion', label: '🏭 Producción Diaria' },
+    { href: '/dashboard/inventario', label: '📋 Inventario' },
   ],
 }
 
 interface SidebarProps {
-  role: 'administrador' | 'bodega' | 'sucursal'
+  role: 'administrador' | 'bodega' | 'sucursal' | 'produccion'
   sucursalId?: string | null
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
+import { authOptions } from '@/caracteristicas/autenticacion/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }

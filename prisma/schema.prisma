@@ -9,30 +9,65 @@ datasource db {
 }
 
 model Role {
-  id        Int       @id @default(autoincrement())
-  nombre    String    @unique
-  createdAt DateTime  @default(now()) @map("creado_at")
-  updatedAt DateTime  @updatedAt @map("actualizado_at")
-  usuarios  Usuario[]
+  id          Int              @id @default(autoincrement())
+  nombre      String           @unique
+  descripcion String?
+  createdAt   DateTime         @default(now()) @map("creado_at")
+  updatedAt   DateTime         @updatedAt @map("actualizado_at")
+  usuarios    Usuario[]
+  permisos    RolePermission[]
 
   @@map("roles")
 }
 
-model Usuario {
-  id              Int                    @id @default(autoincrement())
-  correo          String                 @unique
-  nombre          String
-  contrasenaHash  String                 @map("contrasena_hash")
-  rolId           Int                    @map("rol_id")
-  createdAt       DateTime               @default(now()) @map("creado_at")
-  updatedAt       DateTime               @updatedAt @map("actualizado_at")
-  enviosCreados   Envio[]
-  movimientos     MovimientoInventario[]
-  notificaciones  Notificacion[]
-  sucursalGerente Sucursal?              @relation("GerenteSucursal")
-  rol             Role                   @relation(fields: [rolId], references: [id])
-  ventas          Venta[]
+model Permission {
+  id          Int              @id @default(autoincrement())
+  codigo      String           @unique // "usuarios.crear", "usuarios.editar", "ventas.ver", etc.
+  nombre      String
+  descripcion String?
+  modulo      String           // "usuarios", "ventas", "inventario", "productos", etc.
+  createdAt   DateTime         @default(now()) @map("creado_at")
+  roles       RolePermission[]
 
+  @@index([modulo])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("creado_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Usuario {
+  id                   Int                    @id @default(autoincrement())
+  correo               String                 @unique
+  nombre               String
+  contrasenaHash       String                 @map("contrasena_hash")
+  rolId                Int                    @map("rol_id")
+  activo               Boolean                @default(true)
+  intentosFallidos     Int                    @default(0) @map("intentos_fallidos")
+  bloqueadoHasta       DateTime?              @map("bloqueado_hasta")
+  ultimoAcceso         DateTime?              @map("ultimo_acceso")
+  debeActualizarClave  Boolean                @default(false) @map("debe_actualizar_clave")
+  createdAt            DateTime               @default(now()) @map("creado_at")
+  updatedAt            DateTime               @updatedAt @map("actualizado_at")
+  enviosCreados        Envio[]
+  movimientos          MovimientoInventario[]
+  notificaciones       Notificacion[]
+  sucursalGerente      Sucursal?              @relation("GerenteSucursal")
+  rol                  Role                   @relation(fields: [rolId], references: [id])
+  ventas               Venta[]
+  auditLogs            AuditLog[]
+
+  @@index([correo])
+  @@index([activo])
   @@map("usuarios")
 }
 
@@ -85,6 +120,7 @@ model Producto {
   movimientos   MovimientoInventario[]
   ventaItems    VentaItem[]
   devoluciones  Devolucion[]
+  producciones  ProduccionDiaria[]
 
   @@map("productos")
 }
@@ -224,9 +260,48 @@ model Devolucion {
   costoUnitario Decimal         @map("costo_unitario") @db.Decimal(12, 2)
   costoTotal    Decimal         @map("costo_total") @db.Decimal(12, 2)
   createdAt     DateTime        @default(now()) @map("creado_at")
-  
+
   operacion     OperacionDiaria @relation(fields: [operacionId], references: [id], onDelete: Cascade)
   producto      Producto        @relation(fields: [productoId], references: [id])
-  
+
   @@map("devoluciones")
+}
+
+model ProduccionDiaria {
+  id                    String   @id @default(cuid())
+  fecha                 DateTime @default(now()) @db.Date
+  productoId            String   @map("producto_id")
+  cantidadContenedores  Int      @default(0) @map("cantidad_contenedores") // Ej: 100 latas
+  unidadesPorContenedor Int      @default(1) @map("unidades_por_contenedor") // Ej: 24 panes por lata
+  totalUnidades         Int      @default(0) @map("total_unidades") // 100 * 24 = 2400
+  observaciones         String?
+  registradoPor         Int      @map("registrado_por")
+  enviado               Boolean  @default(false) // Si ya fue enviado a bodega
+  createdAt             DateTime @default(now()) @map("creado_at")
+  updatedAt             DateTime @updatedAt @map("actualizado_at")
+
+  producto              Producto @relation(fields: [productoId], references: [id])
+
+  @@unique([fecha, productoId])
+  @@map("produccion_diaria")
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int?     @map("usuario_id")
+  accion      String   // "LOGIN", "LOGOUT", "CREATE_USER", "UPDATE_USER", "DELETE_USER", etc.
+  entidad     String?  // "Usuario", "Producto", "Venta", etc.
+  entidadId   String?  @map("entidad_id")
+  detalles    Json?    // Información adicional sobre la acción
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  exitoso     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("creado_at")
+
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
+  @@index([accion])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

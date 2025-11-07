@@ -1,0 +1,407 @@
+{
+  "info": {
+    "name": "CRM API - Completa",
+    "description": "Colección completa de endpoints del CRM con autenticación NextAuth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación",
+      "item": [
+        {
+          "name": "Login - Administrador",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Este request establece la cookie de sesión automáticamente"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "correo",
+                  "value": "admin@empresa.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "Admin@2025",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/auth/callback/credentials",
+            "description": "Login con usuario administrador. Copia el token de la respuesta Set-Cookie."
+          }
+        },
+        {
+          "name": "Login - Producción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "correo",
+                  "value": "produccion@empresa.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "Produccion@2025",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/auth/callback/credentials"
+          }
+        },
+        {
+          "name": "Login - Bodega",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "correo",
+                  "value": "bodega@empresa.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "Bodega@2025",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/auth/callback/credentials"
+          }
+        },
+        {
+          "name": "Login - Sucursal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "correo",
+                  "value": "sucursal@empresa.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "Sucursal@2025",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/auth/callback/credentials"
+          }
+        },
+        {
+          "name": "Obtener Sesión Actual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/auth/session",
+            "description": "Verifica la sesión actual y el usuario autenticado"
+          }
+        }
+      ],
+      "description": "Endpoints de autenticación. Usa estos para obtener la cookie de sesión."
+    },
+    {
+      "name": "1. Producción Diaria",
+      "item": [
+        {
+          "name": "Listar Toda la Producción",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/produccion-diaria",
+            "description": "Obtiene toda la producción registrada"
+          }
+        },
+        {
+          "name": "Filtrar por Fecha",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/produccion-diaria?fecha=2025-11-07",
+              "host": ["{{base_url}}"],
+              "path": ["api", "produccion-diaria"],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2025-11-07",
+                  "description": "Formato: YYYY-MM-DD"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar Producción No Enviada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/produccion-diaria?enviado=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "produccion-diaria"],
+              "query": [
+                {
+                  "key": "enviado",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar Nueva Producción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"REEMPLAZAR_CON_ID_PRODUCTO\",\n  \"cantidadContenedores\": 10,\n  \"unidadesPorContenedor\": 50,\n  \"observaciones\": \"Producción de prueba desde Postman\"\n}"
+            },
+            "url": "{{base_url}}/api/produccion-diaria",
+            "description": "Registra nueva producción. Requiere rol 'produccion' o 'admin'.\n\nPara obtener un productoId válido:\n1. Ejecuta: npm run prisma:studio\n2. Ve a la tabla Producto\n3. Copia el 'id' de cualquier producto"
+          }
+        },
+        {
+          "name": "Marcar Producción como Enviada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"enviado\": true\n}"
+            },
+            "url": "{{base_url}}/api/produccion-diaria",
+            "description": "Marca una producción como enviada o no enviada"
+          }
+        }
+      ],
+      "description": "Endpoints para gestión de producción diaria"
+    },
+    {
+      "name": "2. Inventario",
+      "item": [
+        {
+          "name": "Obtener Inventario de Sucursal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sucursales/:sucursalId/inventario",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sucursales", ":sucursalId", "inventario"],
+              "variable": [
+                {
+                  "key": "sucursalId",
+                  "value": "REEMPLAZAR_CON_ID_SUCURSAL",
+                  "description": "ID de la sucursal (obtener de Prisma Studio)"
+                }
+              ]
+            },
+            "description": "Obtiene el inventario de una sucursal específica.\n\nPara obtener un sucursalId válido:\n1. Ejecuta: npm run prisma:studio\n2. Ve a la tabla Sucursal\n3. Copia el 'id' de cualquier sucursal\n\nNOTA: Usuarios con rol 'sucursal' solo pueden ver su propia sucursal."
+          }
+        }
+      ],
+      "description": "Endpoints de inventario"
+    },
+    {
+      "name": "3. Tests de Seguridad",
+      "item": [
+        {
+          "name": "Test: Request sin Autenticación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/produccion-diaria",
+            "description": "Debe retornar 401 Unauthorized"
+          }
+        },
+        {
+          "name": "Test: Sucursal intenta Registrar Producción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}",
+                "description": "Usar token de usuario sucursal"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"cualquier-id\",\n  \"cantidadContenedores\": 10,\n  \"unidadesPorContenedor\": 50\n}"
+            },
+            "url": "{{base_url}}/api/produccion-diaria",
+            "description": "Primero inicia sesión como 'sucursal@empresa.com'.\nEste request debe retornar 403 Forbidden porque usuarios de sucursal no pueden registrar producción."
+          }
+        },
+        {
+          "name": "Test: Sucursal accede a Otra Sucursal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "next-auth.session-token={{session_token}}",
+                "description": "Usar token de usuario sucursal"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sucursales/:otraSucursalId/inventario",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sucursales", ":otraSucursalId", "inventario"],
+              "variable": [
+                {
+                  "key": "otraSucursalId",
+                  "value": "SUCURSAL_DIFERENTE",
+                  "description": "ID de una sucursal DIFERENTE a la asignada al usuario"
+                }
+              ]
+            },
+            "description": "Primero inicia sesión como 'sucursal@empresa.com'.\nEste usuario está asignado a una sucursal específica.\nIntenta acceder a una sucursal DIFERENTE.\nDebe retornar 403 Forbidden."
+          }
+        }
+      ],
+      "description": "Tests para validar que el sistema de permisos funciona correctamente"
+    },
+    {
+      "name": "4. Utilidades",
+      "item": [
+        {
+          "name": "Test de Conexión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/test-connection",
+            "description": "Verifica que la API está funcionando"
+          }
+        }
+      ]
+    }
+  ]
+}

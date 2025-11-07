@@ -2,14 +2,13 @@ import { obtenerKpisDashboard, obtenerAlertasDashboard, obtenerResumenSucursales
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/caracteristicas/autenticacion/auth'
+import { getServerSession } from '@/caracteristicas/autenticacion/server'
 
 // Revalidar cada 60 segundos
 export const revalidate = 60
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   
   // Ejecutar consultas en paralelo para reducir tiempo
   const [{ kpis }, { alertas }, { sucursales }] = await Promise.all([
@@ -130,27 +129,80 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/dashboard/productos/nuevo" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
-              <div className="text-2xl mb-2">📦</div>
-              <div className="text-sm font-medium">Nuevo Producto</div>
-            </Link>
-            <Link href="/dashboard/ventas" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
-              <div className="text-2xl mb-2">💰</div>
-              <div className="text-sm font-medium">Registrar Venta</div>
-            </Link>
-            <Link href="/dashboard/envios/nuevo" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
-              <div className="text-2xl mb-2">🚚</div>
-              <div className="text-sm font-medium">Nuevo Envío</div>
-            </Link>
-            <Link href="/dashboard/reportes" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
-              <div className="text-2xl mb-2">📊</div>
-              <div className="text-sm font-medium">Ver Reportes</div>
-            </Link>
+            {/* Administrador: todas las acciones */}
             {session?.user.rol === 'administrador' && (
-              <Link href="/dashboard/sucursales" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
-                <div className="text-2xl mb-2">🏢</div>
-                <div className="text-sm font-medium">Gestionar Sucursales</div>
-              </Link>
+              <>
+                <Link href="/dashboard/productos/nuevo" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📦</div>
+                  <div className="text-sm font-medium">Nuevo Producto</div>
+                </Link>
+                <Link href="/dashboard/ventas" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">💰</div>
+                  <div className="text-sm font-medium">Registrar Venta</div>
+                </Link>
+                <Link href="/dashboard/envios/nuevo" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">🚚</div>
+                  <div className="text-sm font-medium">Nuevo Envío</div>
+                </Link>
+                <Link href="/dashboard/produccion" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">🏭</div>
+                  <div className="text-sm font-medium">Producción</div>
+                </Link>
+                <Link href="/dashboard/reportes" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📊</div>
+                  <div className="text-sm font-medium">Ver Reportes</div>
+                </Link>
+                <Link href="/dashboard/sucursales" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">🏢</div>
+                  <div className="text-sm font-medium">Gestionar Sucursales</div>
+                </Link>
+              </>
+            )}
+
+            {/* Bodega: inventario y envíos */}
+            {session?.user.rol === 'bodega' && (
+              <>
+                <Link href="/dashboard/inventario" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="text-sm font-medium">Ver Inventario</div>
+                </Link>
+                <Link href="/dashboard/envios/nuevo" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">🚚</div>
+                  <div className="text-sm font-medium">Nuevo Envío</div>
+                </Link>
+                <Link href="/dashboard/envios" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📦</div>
+                  <div className="text-sm font-medium">Gestionar Envíos</div>
+                </Link>
+              </>
+            )}
+
+            {/* Sucursal: ventas e inventario */}
+            {session?.user.rol === 'sucursal' && (
+              <>
+                <Link href="/dashboard/ventas" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">💰</div>
+                  <div className="text-sm font-medium">Registrar Venta</div>
+                </Link>
+                <Link href="/dashboard/inventario" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="text-sm font-medium">Ver Inventario</div>
+                </Link>
+              </>
+            )}
+
+            {/* Producción: registrar producción */}
+            {session?.user.rol === 'produccion' && (
+              <>
+                <Link href="/dashboard/produccion" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">🏭</div>
+                  <div className="text-sm font-medium">Registrar Producción</div>
+                </Link>
+                <Link href="/dashboard/inventario" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+                  <div className="text-2xl mb-2">📋</div>
+                  <div className="text-sm font-medium">Ver Inventario</div>
+                </Link>
+              </>
             )}
           </div>
         </CardContent>
