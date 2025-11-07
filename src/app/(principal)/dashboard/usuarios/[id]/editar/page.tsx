@@ -14,7 +14,7 @@ export default async function EditarUsuarioPage({
   params: { id: string }
 }) {
   // ✅ Validación de rol en el servidor
-  await requireRole('administrador')
+  await requireRole(['administrador'])
 
   const usuarioId = parseInt(params.id)
 

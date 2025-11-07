@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 
 export default async function NuevoUsuarioPage() {
   // ✅ Validación de rol en el servidor
-  await requireRole('administrador')
+  await requireRole(['administrador'])
 
   // Cargar roles y sucursales disponibles
   const [roles, sucursales] = await Promise.all([

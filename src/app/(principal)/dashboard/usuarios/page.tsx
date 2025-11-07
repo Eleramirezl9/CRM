@@ -15,7 +15,7 @@ import Link from 'next/link'
 
 export default async function UsuariosPage() {
   // ✅ Validación de rol en el servidor
-  await requireRole('administrador')
+  await requireRole(['administrador'])
 
   return (
     <div className="p-8 space-y-6">
