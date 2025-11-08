@@ -59,7 +59,7 @@ export async function registrarAuditoria({
         accion,
         entidad: entidad ?? null,
         entidadId: entidadId ?? null,
-        detalles: detalles ?? null,
+        detalles: detalles ?? undefined,
         ipAddress,
         userAgent,
         exitoso,

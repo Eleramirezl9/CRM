@@ -58,7 +58,7 @@ export async function asignarPermisosRol(
     const currentUserId = await getCurrentUserId()
     await registrarAuditoria({
       usuarioId: currentUserId,
-      accion: 'UPDATE_ROLE_PERMISSIONS',
+      accion: 'UPDATE_ROLE',
       entidad: 'Role',
       entidadId: String(rolId),
       detalles: {

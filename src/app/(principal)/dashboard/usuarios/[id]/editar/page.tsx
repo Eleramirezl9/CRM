@@ -28,6 +28,9 @@ export default async function EditarUsuarioPage({
       where: { id: usuarioId },
       include: {
         rol: true,
+        sucursalGerente: {
+          select: { id: true, nombre: true },
+        },
       },
     }),
     prisma.role.findMany({

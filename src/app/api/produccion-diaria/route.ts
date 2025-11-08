@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo usuarios de producción pueden registrar
-    if (session.user.rol !== 'produccion' && session.user.rol !== 'admin') {
+    if (session.user.rol !== 'produccion' && session.user.rol !== 'administrador') {
       return NextResponse.json({
         error: 'No tienes permisos para registrar producción'
       }, { status: 403 })
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         unidadesPorContenedor,
         totalUnidades,
         observaciones,
-        registradoPor: session.user.id,
+        registradoPor: parseInt(session.user.id),
       },
       include: {
         producto: true,

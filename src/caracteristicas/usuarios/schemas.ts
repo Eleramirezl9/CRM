@@ -38,8 +38,8 @@ export const createUsuarioSchema = z.object({
   password: passwordSchema,
   rolId: z.number().int().positive('Rol inválido'),
   sucursalId: z.string().optional().nullable(),
-  activo: z.boolean().default(true),
-  debeActualizarClave: z.boolean().default(false),
+  activo: z.boolean().optional().default(true),
+  debeActualizarClave: z.boolean().optional().default(false),
 })
 
 // Schema para actualizar usuario (sin contraseña obligatoria)

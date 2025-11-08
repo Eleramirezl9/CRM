@@ -50,21 +50,28 @@ export function FormularioUsuario({
     const formData = new FormData(e.currentTarget)
     const password = formData.get('password') as string
 
-    const data = {
-      nombre: formData.get('nombre') as string,
-      correo: formData.get('correo') as string,
-      ...(password && { password }), // Solo incluir password si tiene valor
-      rolId: parseInt(formData.get('rolId') as string),
-    }
-
     startTransition(async () => {
       let result
 
       if (usuario) {
         // Modo edición
+        const data = {
+          nombre: formData.get('nombre') as string,
+          correo: formData.get('correo') as string,
+          ...(password && { password }), // Solo incluir password si tiene valor
+          rolId: parseInt(formData.get('rolId') as string),
+        }
         result = await actualizarUsuario(usuario.id, data)
       } else {
         // Modo creación
+        const data = {
+          nombre: formData.get('nombre') as string,
+          correo: formData.get('correo') as string,
+          password, // Requerido en creación
+          rolId: parseInt(formData.get('rolId') as string),
+          activo: true,
+          debeActualizarClave: false,
+        }
         result = await crearUsuario(data)
       }
 

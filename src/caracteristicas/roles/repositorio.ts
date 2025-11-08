@@ -97,7 +97,7 @@ export class RoleRepository {
   async assignPermission(rolId: number, permissionId: number) {
     return await prisma.rolePermission.create({
       data: {
-        roleId,
+        roleId: rolId,
         permissionId,
       },
     })
@@ -110,7 +110,7 @@ export class RoleRepository {
     return await prisma.rolePermission.delete({
       where: {
         roleId_permissionId: {
-          roleId,
+          roleId: rolId,
           permissionId,
         },
       },

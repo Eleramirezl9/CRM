@@ -15,7 +15,7 @@ export async function registrarProduccion(data: {
 }) {
   try {
     const session = await getServerSession()
-    if (!session || (session.user.rol !== 'produccion' && session.user.rol !== 'admin')) {
+    if (!session || (session.user.rol !== 'produccion' && session.user.rol !== 'administrador')) {
       return { success: false, error: 'No tienes permisos para registrar producción' }
     }
 
