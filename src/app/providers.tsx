@@ -1,0 +1,19 @@
+/**
+ * Providers Component
+ *
+ * Envuelve la aplicación con los providers necesarios de Next.js y NextAuth.
+ * Debe ser un Client Component para usar contextos de React.
+ */
+
+'use client'
+
+import { SessionProvider } from 'next-auth/react'
+import { ReactNode } from 'react'
+
+interface ProvidersProps {
+  children: ReactNode
+}
+
+export function Providers({ children }: ProvidersProps) {
+  return <SessionProvider>{children}</SessionProvider>
+}
