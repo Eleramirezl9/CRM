@@ -7,6 +7,7 @@ import { verify } from '@node-rs/argon2'
 import { UsuarioRepository } from '@/caracteristicas/usuarios/repositorio'
 import { registrarAuditoria } from '@/compartido/lib/auditoria'
 import { checkRateLimit, getRateLimitResetMinutes } from '@/compartido/lib/rate-limit'
+import { verificarSesionInvalidada, limpiarInvalidacion } from '@/compartido/lib/invalidar-sesion'
 import { CustomPrismaAdapter } from './adapter'
 
 const usuarioRepo = new UsuarioRepository()
@@ -150,29 +151,54 @@ export const authOptions: NextAuthOptions = {
         token.rol = (user as any).rol
         token.sucursalId = (user as any).sucursalId ?? null
         token.activo = true
+        token.permisosLastUpdate = Date.now()
       }
 
-      // ✅ CRÍTICO: Recargar permisos en cada request o cuando se actualiza
-      // Esto asegura que los cambios de permisos se reflejen sin necesidad de logout
-      if (token.id && (trigger === 'update' || !token.permisos)) {
-        try {
-          const userId = parseInt(String(token.id))
-          const userWithPermissions = await usuarioRepo.findById(userId)
+      // ✅ Sistema de invalidación de sesión con Redis
+      // Verifica si los permisos del usuario fueron modificados y deben recargarse
+      if (token.id) {
+        const userId = parseInt(String(token.id))
 
-          if (userWithPermissions) {
-            // Combinar permisos del rol + permisos individuales
-            const permisosRol = userWithPermissions.rol.permisos.map(rp => rp.permission.codigo)
-            const permisosIndividuales = userWithPermissions.permisosIndividuales?.map(up => up.permission.codigo) || []
+        // Verificar si la sesión fue invalidada (permisos cambiados)
+        const sesionInvalidada = await verificarSesionInvalidada(userId)
 
-            // Unir ambos conjuntos de permisos (sin duplicados)
-            const todosLosPermisos = [...new Set([...permisosRol, ...permisosIndividuales])]
+        // Recargar permisos si:
+        // 1. La sesión fue invalidada (permisos modificados)
+        // 2. No existen permisos en el token
+        // 3. Se forzó actualización con trigger='update'
+        const needsUpdate = sesionInvalidada ||
+                           !token.permisos ||
+                           trigger === 'update'
 
-            token.permisos = todosLosPermisos
-            token.activo = userWithPermissions.activo
+        if (needsUpdate) {
+          try {
+            const userWithPermissions = await usuarioRepo.findById(userId)
+
+            if (userWithPermissions) {
+              // Combinar permisos del rol + permisos individuales
+              const permisosRol = userWithPermissions.rol.permisos.map(rp => rp.permission.codigo)
+              const permisosIndividuales = userWithPermissions.permisosIndividuales?.map(up => up.permission.codigo) || []
+
+              // Unir ambos conjuntos de permisos (sin duplicados)
+              const todosLosPermisos = [...new Set([...permisosRol, ...permisosIndividuales])]
+
+              token.permisos = todosLosPermisos
+              token.activo = userWithPermissions.activo
+              token.permisosLastUpdate = Date.now()
+
+              // ✅ Limpiar marca de invalidación después de recargar
+              if (sesionInvalidada) {
+                await limpiarInvalidacion(userId)
+
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`🔄 Permisos INVALIDADOS y actualizados para usuario ${userId}:`, todosLosPermisos)
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error al cargar permisos en token:', error)
+            token.permisos = []
           }
-        } catch (error) {
-          console.error('Error al cargar permisos en token:', error)
-          token.permisos = []
         }
       }
 

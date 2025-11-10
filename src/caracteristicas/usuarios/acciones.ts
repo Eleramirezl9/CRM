@@ -11,6 +11,7 @@ import { requireRole, getCurrentUserId } from '@/compartido/lib/dal'
 import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { registrarAuditoria } from '@/compartido/lib/auditoria'
 import { checkRateLimit, getRateLimitResetMinutes } from '@/compartido/lib/rate-limit'
+import { invalidarSesionUsuario } from '@/compartido/lib/invalidar-sesion'
 import { UsuarioRepository } from './repositorio'
 import {
   createUsuarioSchema,
@@ -379,12 +380,15 @@ export async function asignarPermisosUsuario(
       },
     })
 
+    // ✅ NUEVO: Invalidar sesión del usuario para forzar recarga de permisos
+    await invalidarSesionUsuario(usuarioId)
+
     revalidatePath('/dashboard/usuarios')
     revalidatePath(`/dashboard/usuarios/${usuarioId}/permisos`)
 
     return {
       success: true,
-      message: 'Permisos actualizados. El usuario debe cerrar sesión y volver a iniciar sesión para que los cambios surtan efecto.',
+      message: 'Permisos actualizados correctamente. Los cambios se aplicarán en menos de 5 segundos.',
     }
   } catch (error) {
     console.error('Error al asignar permisos:', error)

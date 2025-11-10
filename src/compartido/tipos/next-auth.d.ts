@@ -27,5 +27,6 @@ declare module 'next-auth/jwt' {
     sucursalId?: string | null
     permisos?: string[] // Permisos combinados (rol + individuales)
     activo?: boolean
+    permisosLastUpdate?: number // Timestamp de última actualización de permisos
   }
 }

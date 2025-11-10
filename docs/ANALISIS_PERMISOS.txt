@@ -1,0 +1,269 @@
+ANALISIS COMPLETO: PROBLEMA DE PERMISOS
+========================================
+
+PROBLEMA RAIZ
+=============
+
+Los permisos se guardan bien en la BD, pero NextAuth cachea el JWT token 
+durante ~30 segundos. El callback jwt() NO se ejecuta en cada request.
+
+RESULTADO: Los usuarios ven permisos viejos hasta que pase el timeout o hagan logout.
+
+FLUJO ACTUAL
+============
+
+1. GUARDADO (FUNCIONA BIEN ✅)
+   
+   asignarPermisosUsuario() en usuarios/acciones.ts:
+   - Elimina permisos viejos de user_permissions tabla
+   - Inserta nuevos permisos
+   - Audita los cambios
+   - Retorna mensaje "se aplicarán en 30 segundos"
+
+2. LECTURA (PROBLEMA ❌)
+   
+   JWT callback en auth.ts (líneas 156-190):
+   - Intenta recargar permisos cada 30 segundos
+   - PERO: Solo se ejecuta si NextAuth llama al callback
+   - NextAuth NO llama al callback en cada request
+   - RESULTADO: Permisos quedan cachados
+
+3. SESION (COPIA DATOS CACHADOS ❌)
+   
+   Session callback en auth.ts (líneas 195-204):
+   - Copia token.permisos a session.user.permisos
+   - token.permisos son datos viejos del JWT
+   - RESULTADO: Usuario ve permisos antiguos
+
+4. VALIDACION (LEE DATOS CACHADOS ⚠️)
+   
+   tienePermiso() en permisos.ts:
+   - Lee session.user.permisos (datos cachados)
+   - Tiene fallback a BD pero es lento
+   - RESULTADO: User ven datos viejos
+
+ESCENARIOS QUE FALLAN
+=====================
+
+ESCENARIO 1: Usuario navega normalmente
+  [10:00:00] Usuario logueado con permisos [ver, editar]
+  [10:00:30] Admin cambia permisos a [ver]
+  [10:00:31] Usuario hace request
+             - JWT válido, NextAuth lo reutiliza
+             - jwt() callback NO se ejecuta
+             - Usuario ve permisos viejos [ver, editar] ❌
+
+ESCENARIO 2: Usuario recarga página
+  [F5] Usuario presiona F5
+       - NextAuth valida JWT (válido)
+       - jwt() callback NO se ejecuta
+       - Permisos NO se recargan ❌
+
+ESCENARIO 3: Usuario abre nueva pestaña
+  [Tab2] Abre nueva pestaña
+         - Mantiene cookie del navegador
+         - JWT válido
+         - jwt() callback NO se ejecuta ❌
+
+UBICACIONES CLAVE
+=================
+
+DONDE SE GUARDAN (✅ FUNCIONA):
+  Archivo: src/caracteristicas/usuarios/acciones.ts
+  Función: asignarPermisosUsuario() línea 322-396
+  Tabla: user_permissions
+  Qué pasa:
+    1. Elimina permisos viejos
+    2. Inserta nuevos en user_permissions
+    3. Audita cambios
+    4. Retorna mensaje
+
+DONDE SE CARGAN (❌ PROBLEMA):
+  Archivo: src/caracteristicas/autenticacion/auth.ts
+  Callback: jwt() línea 156-190
+  Qué pasa:
+    1. Verifica si necesita actualizar (cada 30s)
+    2. Si sí, carga permisos de BD
+    3. Actualiza token.permisos
+    4. Guarda timestamp en token.permisosLastUpdate
+  PROBLEMA: Este callback no se ejecuta automáticamente en cada request
+
+DONDE SE USAN EN SESION (❌ COPIA VIEJOS):
+  Archivo: src/caracteristicas/autenticacion/auth.ts
+  Callback: session() línea 195-204
+  Qué pasa:
+    session.user.permisos = token.permisos
+  PROBLEMA: Copia datos cachados del JWT
+
+DONDE SE VALIDAN (⚠️ LEE CACHADOS):
+  Archivo: src/compartido/lib/permisos.ts
+  Función: tienePermiso() línea 74-93
+  Qué pasa:
+    1. Lee session.user.permisos (datos cachados)
+    2. Si no encuentra, fallback a BD
+  PROBLEMA: Lee datos viejos primero
+
+CONFIGURACION JWT
+=================
+
+auth.ts líneas 14-19:
+  session: {
+    strategy: 'jwt',           // ← Cachea token
+    maxAge: 8 * 60 * 60,       // ← 8 horas TTL
+    updateAge: 24 * 60 * 60,   // ← Irrelevante
+  }
+
+PROBLEMA: 
+- JWT se cachea por 8 horas
+- updateAge de 24 horas no ayuda
+- No hay forma de invalidar desde server actions
+
+COMPARACION: ANTES vs AHORA
+============================
+
+ANTES:
+  if (token.id && trigger === 'update') {
+    // Recarga SOLO si se fuerza
+    // Pero trigger='update' nunca se ejecuta
+    // RESULTADO: Nunca recarga ❌
+  }
+
+AHORA (commit 1eb5cd2):
+  const needsUpdate = !token.permisos ||
+                     !token.permisosLastUpdate ||
+                     (Date.now() - (token.permisosLastUpdate as number)) > 30000 ||
+                     trigger === 'update'
+
+  if (needsUpdate) {
+    // Carga permisos si pasaron 30s
+    // PERO: jwt() debe ejecutarse para verificar
+    // RESULTADO: Mejora a ~30s pero sigue fallando ⚠️
+  }
+
+CAMBIOS EN MENSAJE USUARIO:
+  ANTES: "Debe cerrar sesión y volver a iniciar"
+  AHORA: "Se aplicarán en máximo 30 segundos"
+
+STATUS: ⚠️ Mejora detectada pero no resuelve completamente
+
+ARCHIVO auth.ts - LINEA POR LINEA
+==================================
+
+Línea 17: maxAge: 8 * 60 * 60
+  └─ Token se cachea por 8 horas
+
+Línea 156-190: JWT callback
+  if (token.id) {
+    const needsUpdate = !token.permisos ||
+                       !token.permisosLastUpdate ||
+                       (Date.now() - (token.permisosLastUpdate as number)) > 30000 ||
+                       trigger === 'update'
+    
+    if (needsUpdate) {
+      // Carga permisos de BD
+      // PROBLEMA: Este if solo se evalúa si jwt() se ejecuta
+      // Y jwt() no se ejecuta en cada request
+    }
+  }
+
+Línea 172: const userWithPermissions = await usuarioRepo.findById(userId)
+  └─ Carga usuario CON permisos del rol + individuales
+
+Línea 176: const todosLosPermisos = [...new Set([...permisosRol, ...permisosIndividuales])]
+  └─ Combina rol + permisos individuales (bien hecho)
+
+Línea 195-204: Session callback
+  session.user.permisos = (token.permisos as string[]) || []
+  └─ Copia datos del JWT (que están cachados)
+
+MIDDLEWARE.TS
+=============
+
+Línea 28: const token = await getToken({ req })
+  └─ Lee JWT, NO ejecuta jwt() callback
+
+Línea 77-112: Validación por rol
+  const roleAccess = { ... }
+  const allowed = roleAccess[rol]?.some((re) => re.test(pathname))
+  
+  PROBLEMA: Valida ROLES, no permisos granulares
+  Tampoco actualiza sesión aquí
+
+COMPONENTES INVOLUCRADOS
+=========================
+
+┌─ GUARDADO ────────────────────┐
+│ GestionarPermisosUsuario.tsx  │
+│ asignarPermisosUsuario()      │
+│ DB: user_permissions          │
+│ Status: ✅ Funciona          │
+└───────────────────────────────┘
+              ↓
+┌─ CACHÉ JWT ────────────────────┐
+│ auth.ts jwt callback           │
+│ maxAge: 8 horas               │
+│ needsUpdate: cada 30s         │
+│ Status: ❌ No se ejecuta      │
+└────────────────────────────────┘
+              ↓
+┌─ SESION ──────────────────────┐
+│ auth.ts session callback      │
+│ Copia token.permisos          │
+│ Status: ❌ Copia datos viejos│
+└───────────────────────────────┘
+              ↓
+┌─ USUARIO VE PERMISOS VIEJOS ❌ ┐
+│ Hasta que pasen 30s+          │
+│ O haga logout/login           │
+└────────────────────────────────┘
+
+BASE DE DATOS
+=============
+
+Tabla user_permissions:
+  usuario_id | permission_id | created_at
+  -----------+---------------+-----------
+  (guarda permisos individuales)
+
+Tabla role_permissions:
+  role_id | permission_id | created_at
+  --------+---------------+-----------
+  (guarda permisos del rol)
+
+Status: ✅ Se actualiza correctamente
+
+DIAGNOSTICO
+===========
+
+Síntoma 1: "Cambio permisos pero no se ven"
+  Causa: JWT caché sin invalidación
+
+Síntoma 2: "Debo hacer logout/login para funcionar"
+  Causa: Login ejecuta authorize() + jwt() que carga BD fresca
+
+Síntoma 3: "A veces funciona, a veces no"
+  Causa: Depende si hace request después de 30s
+
+Síntoma 4: "Otros usuarios ven cambios primero"
+  Causa: Cada usuario tiene JWT independiente
+
+CONCLUSION
+==========
+
+GUARDADO: ✅ Funciona perfectamente
+CACHÉ: ❌ Problema crítico
+
+NextAuth cachea JWT por 8 horas sin mecanismo de invalidación.
+El callback jwt() no se ejecuta en cada request.
+El timeout de 30s no es garantizado.
+
+Los 30 segundos mencionados al usuario son OPTIMISTAS.
+En realidad puede tomar desde 30 segundos hasta 8 horas.
+Depende de si hace request después del timeout.
+
+SOLUCION REQUIERE:
+- Cambiar estrategia de sesión (JWT a database o hybrid)
+- O crear endpoint para invalidar JWT
+- NO cambiar guardado (ya está bien)
+- NO cambiar BD (ya está bien)
+

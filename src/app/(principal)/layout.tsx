@@ -1,5 +1,6 @@
 import { getServerSession } from '@/caracteristicas/autenticacion/server'
 import Sidebar from '@/compartido/componentes/layout/sidebar'
+import { SessionRefresher } from '@/compartido/componentes/layout/SessionRefresher'
 import { redirect } from 'next/navigation'
 import { ReactNode } from 'react'
 
@@ -12,6 +13,8 @@ export default async function PrincipalLayout({ children }: { children: ReactNod
 
   return (
     <div className="min-h-screen grid grid-cols-[240px_1fr]" suppressHydrationWarning>
+      {/* Componente que verifica cambios de permisos cada 5 segundos */}
+      <SessionRefresher />
       <Sidebar
         role={session.user.rol}
         sucursalId={session.user.sucursalId}
