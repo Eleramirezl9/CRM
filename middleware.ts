@@ -74,52 +74,18 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Role-based access map
-  const roleAccess: Record<string, RegExp[]> = {
-    administrador: [
-      /^\/dashboard.*$/, // Acceso total a todo dashboard
-    ],
-    bodega: [
-      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
-      /^\/dashboard\/inventario(\/.*)?$/, // Inventario completo
-      /^\/dashboard\/envios(\/.*)?$/, // Envíos (aquí verá las sucursales en contexto de envío)
-      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
-      // NO tiene acceso a /dashboard/sucursales (gestión)
-      // NO tiene acceso a /dashboard/ventas
-      // NO tiene acceso a /dashboard/productos
-      // NO tiene acceso a /dashboard/reportes
-    ],
-    sucursal: [
-      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
-      /^\/dashboard\/ventas(\/.*)?$/, // Módulo de ventas
-      /^\/dashboard\/inventario(\/.*)?$/, // Ver inventario de su sucursal
-      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
-      // NO tiene acceso a envíos
-      // NO tiene acceso a productos
-      // NO tiene acceso a reportes
-      // NO tiene acceso a sucursales
-    ],
-    produccion: [
-      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
-      /^\/dashboard\/produccion(\/.*)?$/, // Módulo de producción
-      /^\/dashboard\/inventario(\/.*)?$/, // Ver inventario (solo lectura)
-      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
-      // NO tiene acceso a ventas
-      // NO tiene acceso a envíos
-      // NO tiene acceso a productos
-      // NO tiene acceso a reportes
-      // NO tiene acceso a sucursales
-    ],
-  }
+  // ✅ Estrategia: DENEGAR POR DEFECTO, solo permitir si tiene permisos específicos
+  let allowed = false
 
-  // Verificar acceso por rol (comportamiento base)
-  let allowed = roleAccess[rol]?.some((re) => re.test(pathname)) ?? false
-
-  // ✅ NUEVO: Verificar permisos individuales si no tiene acceso por rol
-  if (!allowed && permisos.length > 0) {
+  // 1. Administrador tiene acceso total (sin restricciones)
+  if (rol === 'administrador') {
+    allowed = true
+  } else {
+    // 2. Para otros roles, VERIFICAR PERMISOS INDIVIDUALES
     // Mapeo de rutas a permisos requeridos
     const routePermissions: Record<string, string[]> = {
       '/dashboard/usuarios': ['usuarios.ver'],
+      '/dashboard/roles': ['roles.ver'],
       '/dashboard/productos': ['productos.ver'],
       '/dashboard/inventario': ['inventario.ver'],
       '/dashboard/ventas': ['ventas.ver'],
@@ -127,26 +93,32 @@ export async function middleware(req: NextRequest) {
       '/dashboard/produccion': ['produccion.ver'],
       '/dashboard/sucursales': ['sucursales.ver'],
       '/dashboard/reportes': ['reportes.ver'],
+      '/dashboard/auditoria': ['auditoria.ver'],
     }
 
-    // Verificar si tiene permiso para la ruta
+    // Verificar si tiene permiso para la ruta específica
     for (const [route, requiredPerms] of Object.entries(routePermissions)) {
       if (pathname.startsWith(route)) {
-        // Si tiene al menos uno de los permisos requeridos, permitir acceso
+        // Debe tener AL MENOS UNO de los permisos requeridos
         allowed = requiredPerms.some(perm => permisos.includes(perm))
-        if (allowed) break
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔍 Ruta: ${route}, Permisos requeridos: ${requiredPerms}, Usuario tiene: ${permisos.filter(p => requiredPerms.includes(p))}`)
+        }
+        break
       }
+    }
+
+    // 3. Permitir acceso al dashboard principal si tiene al menos 1 permiso
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+      allowed = permisos.length > 0
     }
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`✅ Acceso permitido: ${allowed} (Por rol o permisos)`)
+    console.log(`${allowed ? '✅' : '❌'} Acceso ${allowed ? 'PERMITIDO' : 'DENEGADO'} - Rol: ${rol}, Permisos: [${permisos.slice(0, 3).join(', ')}${permisos.length > 3 ? '...' : ''}]`)
   }
 
   if (!allowed) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`❌ Acceso denegado para rol ${rol} a ${pathname}`)
-    }
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'No tienes permisos para acceder a este recurso' }, { status: 403 })
     }
