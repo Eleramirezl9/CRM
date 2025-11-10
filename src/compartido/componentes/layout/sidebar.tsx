@@ -10,6 +10,7 @@ const linksByRole: Record<string, { href: string; label: string }[]> = {
   administrador: [
     { href: '/dashboard', label: '📊 Dashboard' },
     { href: '/dashboard/usuarios', label: '👥 Usuarios' },
+    { href: '/dashboard/roles', label: '🛡️ Roles y Permisos' },
     { href: '/dashboard/productos', label: '📦 Productos' },
     { href: '/dashboard/inventario', label: '📋 Inventario' },
     { href: '/dashboard/envios', label: '🚚 Envíos' },
@@ -19,18 +20,17 @@ const linksByRole: Record<string, { href: string; label: string }[]> = {
     { href: '/dashboard/reportes', label: '📈 Reportes' },
   ],
   bodega: [
-    { href: '/dashboard', label: '📊 Dashboard' },
+    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/inventario', label: '📋 Inventario' },
     { href: '/dashboard/envios', label: '🚚 Envíos' },
-    // Nota: Verá las sucursales dentro del módulo de envíos, no como módulo separado
   ],
   sucursal: [
-    { href: '/dashboard', label: '📊 Dashboard' },
+    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/ventas', label: '💰 Ventas' },
     { href: '/dashboard/inventario', label: '📋 Inventario' },
   ],
   produccion: [
-    { href: '/dashboard', label: '📊 Dashboard' },
+    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/produccion', label: '🏭 Producción Diaria' },
     { href: '/dashboard/inventario', label: '📋 Inventario' },
   ],

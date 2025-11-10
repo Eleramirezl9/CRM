@@ -313,3 +313,80 @@ export async function toggleUsuarioActivo(id: number, activo: boolean): Promise<
     }
   }
 }
+
+/**
+ * Asignar permisos individuales a un usuario
+ * Solo administrador
+ */
+export async function asignarPermisosUsuario(
+  usuarioId: number,
+  permissionIds: number[]
+): Promise<ActionResult> {
+  try {
+    await requireRole(['administrador'])
+    await requirePermiso(PERMISOS.USUARIOS_EDITAR)
+
+    const { prisma } = await import('@/lib/prisma')
+
+    // Verificar que el usuario existe
+    const usuario = await usuarioRepo.findById(usuarioId)
+    if (!usuario) {
+      return { success: false, error: 'Usuario no encontrado' }
+    }
+
+    // Verificar que todos los permisos existen
+    const permisosExistentes = await prisma.permission.findMany({
+      where: {
+        id: {
+          in: permissionIds,
+        },
+      },
+      select: { id: true },
+    })
+
+    if (permisosExistentes.length !== permissionIds.length) {
+      return { success: false, error: 'Algunos permisos no existen' }
+    }
+
+    // Eliminar permisos actuales del usuario
+    await prisma.userPermission.deleteMany({
+      where: {
+        usuarioId: usuarioId,
+      },
+    })
+
+    // Asignar nuevos permisos
+    if (permissionIds.length > 0) {
+      await prisma.userPermission.createMany({
+        data: permissionIds.map((permissionId) => ({
+          usuarioId: usuarioId,
+          permissionId,
+        })),
+      })
+    }
+
+    // Auditoría
+    const currentUserId = await getCurrentUserId()
+    await registrarAuditoria({
+      usuarioId: currentUserId,
+      accion: 'UPDATE_USER_PERMISSIONS',
+      entidad: 'Usuario',
+      entidadId: String(usuarioId),
+      detalles: {
+        permisosAsignados: permissionIds,
+        cantidadPermisos: permissionIds.length,
+      },
+    })
+
+    revalidatePath('/dashboard/usuarios')
+    revalidatePath(`/dashboard/usuarios/${usuarioId}/permisos`)
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error al asignar permisos:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al asignar permisos',
+    }
+  }
+}

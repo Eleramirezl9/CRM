@@ -13,6 +13,7 @@ export type AuditAction =
   | 'LOGOUT'
   | 'CREATE_USER'
   | 'UPDATE_USER'
+  | 'UPDATE_USER_PERMISSIONS'
   | 'DELETE_USER'
   | 'CHANGE_PASSWORD'
   | 'RESET_PASSWORD'

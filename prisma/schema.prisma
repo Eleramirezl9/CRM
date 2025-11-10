@@ -21,13 +21,14 @@ model Role {
 }
 
 model Permission {
-  id          Int              @id @default(autoincrement())
-  codigo      String           @unique // "usuarios.crear", "usuarios.editar", "ventas.ver", etc.
+  id          Int                @id @default(autoincrement())
+  codigo      String             @unique // "usuarios.crear", "usuarios.editar", "ventas.ver", etc.
   nombre      String
   descripcion String?
-  modulo      String           // "usuarios", "ventas", "inventario", "productos", etc.
-  createdAt   DateTime         @default(now()) @map("creado_at")
+  modulo      String             // "usuarios", "ventas", "inventario", "productos", etc.
+  createdAt   DateTime           @default(now()) @map("creado_at")
   roles       RolePermission[]
+  usuarios    UserPermission[]
 
   @@index([modulo])
   @@map("permissions")
@@ -43,6 +44,18 @@ model RolePermission {
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
+}
+
+model UserPermission {
+  usuarioId    Int        @map("usuario_id")
+  permissionId Int        @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("creado_at")
+
+  usuario      Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, permissionId])
+  @@map("user_permissions")
 }
 
 model Usuario {
@@ -65,6 +78,7 @@ model Usuario {
   rol                  Role                   @relation(fields: [rolId], references: [id])
   ventas               Venta[]
   auditLogs            AuditLog[]
+  permisosIndividuales UserPermission[]
 
   @@index([correo])
   @@index([activo])

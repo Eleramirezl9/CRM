@@ -79,27 +79,30 @@ export async function middleware(req: NextRequest) {
       /^\/dashboard.*$/, // Acceso total a todo dashboard
     ],
     bodega: [
-      /^\/dashboard\/?$/, // Dashboard principal
+      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
       /^\/dashboard\/inventario(\/.*)?$/, // Inventario completo
       /^\/dashboard\/envios(\/.*)?$/, // Envíos (aquí verá las sucursales en contexto de envío)
+      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
       // NO tiene acceso a /dashboard/sucursales (gestión)
       // NO tiene acceso a /dashboard/ventas
       // NO tiene acceso a /dashboard/productos
       // NO tiene acceso a /dashboard/reportes
     ],
     sucursal: [
-      /^\/dashboard\/?$/, // Dashboard principal
+      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
       /^\/dashboard\/ventas(\/.*)?$/, // Módulo de ventas
       /^\/dashboard\/inventario(\/.*)?$/, // Ver inventario de su sucursal
+      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
       // NO tiene acceso a envíos
       // NO tiene acceso a productos
       // NO tiene acceso a reportes
       // NO tiene acceso a sucursales
     ],
     produccion: [
-      /^\/dashboard\/?$/, // Dashboard principal
+      // ❌ REMOVIDO /^\/dashboard\/?$/ - NO tiene acceso al dashboard global
       /^\/dashboard\/produccion(\/.*)?$/, // Módulo de producción
       /^\/dashboard\/inventario(\/.*)?$/, // Ver inventario (solo lectura)
+      // NO tiene acceso a /dashboard (dashboard global con info de toda la empresa)
       // NO tiene acceso a ventas
       // NO tiene acceso a envíos
       // NO tiene acceso a productos

@@ -1,9 +1,13 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/compartido/lib/dal'
 
 export async function obtenerKpisDashboard() {
   try {
+    // ✅ CRÍTICO: Solo administradores pueden ver KPIs globales
+    await requireRole(['administrador'])
+
     // Ventas totales del mes
     const inicioMes = new Date()
     inicioMes.setDate(1)
@@ -91,8 +95,11 @@ export async function obtenerKpisDashboard() {
 
 export async function obtenerAlertasDashboard() {
   try {
+    // ✅ CRÍTICO: Solo administradores pueden ver alertas globales
+    await requireRole(['administrador'])
+
     const alertas: any[] = []
-    
+
     // Productos con stock crítico
     const stockCritico = await prisma.inventario.findMany({
       where: {
@@ -150,6 +157,9 @@ export async function obtenerAlertasDashboard() {
 
 export async function obtenerResumenSucursales() {
   try {
+    // ✅ CRÍTICO: Solo administradores pueden ver resumen de todas las sucursales
+    await requireRole(['administrador'])
+
     const sucursales = await prisma.sucursal.findMany({
       include: {
         ventas: {

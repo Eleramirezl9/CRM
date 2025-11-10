@@ -2,14 +2,42 @@ import { obtenerKpisDashboard, obtenerAlertasDashboard, obtenerResumenSucursales
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import Link from 'next/link'
-import { getServerSession } from '@/caracteristicas/autenticacion/server'
+import { redirect } from 'next/navigation'
+import { requireRole } from '@/compartido/lib/dal'
 
 // Revalidar cada 60 segundos
 export const revalidate = 60
 
 export default async function DashboardPage() {
+  // ✅ CRÍTICO: Solo administradores pueden ver el dashboard global
+  // Los demás roles se redirigen a su módulo principal
+
+  // Primero obtener la sesión
+  const { getServerSession } = await import('@/caracteristicas/autenticacion/server')
   const session = await getServerSession()
-  
+
+  // Validar autenticación
+  if (!session?.user) {
+    redirect('/iniciar-sesion')
+  }
+
+  // Redirigir roles no-admin a su módulo principal
+  if (session.user.rol !== 'administrador') {
+    const redirectMap = {
+      bodega: '/dashboard/inventario',
+      sucursal: '/dashboard/ventas',
+      produccion: '/dashboard/produccion',
+    } as const
+
+    const targetUrl = redirectMap[session.user.rol as keyof typeof redirectMap]
+    if (targetUrl) {
+      redirect(targetUrl)
+    }
+  }
+
+  // Validar permisos de administrador
+  await requireRole(['administrador'])
+
   // Ejecutar consultas en paralelo para reducir tiempo
   const [{ kpis }, { alertas }, { sucursales }] = await Promise.all([
     obtenerKpisDashboard(),
