@@ -2,35 +2,36 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { cn } from '@/compartido/lib/utils'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 
+// Todos los links posibles con sus permisos requeridos
+const allLinks = [
+  { href: '/dashboard', label: '📊 Dashboard', permission: null }, // Siempre visible para admin
+  { href: '/dashboard/usuarios', label: '👥 Usuarios', permission: 'usuarios.ver' },
+  { href: '/dashboard/roles', label: '🛡️ Roles y Permisos', permission: 'roles.ver' },
+  { href: '/dashboard/productos', label: '📦 Productos', permission: 'productos.ver' },
+  { href: '/dashboard/inventario', label: '📋 Inventario', permission: 'inventario.ver' },
+  { href: '/dashboard/envios', label: '🚚 Envíos', permission: 'envios.ver' },
+  { href: '/dashboard/ventas', label: '💰 Ventas', permission: 'ventas.ver' },
+  { href: '/dashboard/sucursales', label: '🏢 Sucursales', permission: 'sucursales.ver' },
+  { href: '/dashboard/produccion', label: '🏭 Producción', permission: 'produccion.ver' },
+  { href: '/dashboard/reportes', label: '📈 Reportes', permission: 'reportes.ver' },
+]
+
+// Links por defecto por rol (fallback si no hay permisos individuales)
 const linksByRole: Record<string, { href: string; label: string }[]> = {
-  administrador: [
-    { href: '/dashboard', label: '📊 Dashboard' },
-    { href: '/dashboard/usuarios', label: '👥 Usuarios' },
-    { href: '/dashboard/roles', label: '🛡️ Roles y Permisos' },
-    { href: '/dashboard/productos', label: '📦 Productos' },
-    { href: '/dashboard/inventario', label: '📋 Inventario' },
-    { href: '/dashboard/envios', label: '🚚 Envíos' },
-    { href: '/dashboard/ventas', label: '💰 Ventas' },
-    { href: '/dashboard/sucursales', label: '🏢 Sucursales' },
-    { href: '/dashboard/produccion', label: '🏭 Producción' },
-    { href: '/dashboard/reportes', label: '📈 Reportes' },
-  ],
+  administrador: allLinks,
   bodega: [
-    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/inventario', label: '📋 Inventario' },
     { href: '/dashboard/envios', label: '🚚 Envíos' },
   ],
   sucursal: [
-    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/ventas', label: '💰 Ventas' },
     { href: '/dashboard/inventario', label: '📋 Inventario' },
   ],
   produccion: [
-    // ❌ SIN ACCESO AL DASHBOARD - Solo sus funciones
     { href: '/dashboard/produccion', label: '🏭 Producción Diaria' },
     { href: '/dashboard/inventario', label: '📋 Inventario' },
   ],
@@ -43,7 +44,32 @@ interface SidebarProps {
 
 export default function Sidebar({ role, sucursalId }: SidebarProps) {
   const pathname = usePathname()
-  const links = linksByRole[role] ?? []
+  const { data: session } = useSession()
+
+  // Obtener permisos del usuario desde la sesión
+  const userPermissions = (session?.user as any)?.permisos || []
+
+  // Calcular links visibles basándose en permisos
+  const links = useMemo(() => {
+    // Administrador siempre ve todo
+    if (role === 'administrador') {
+      return allLinks
+    }
+
+    // Si tiene permisos individuales, filtrar por permisos
+    if (userPermissions.length > 0) {
+      return allLinks.filter(link => {
+        // Si el link no requiere permiso especial, mostrarlo
+        if (!link.permission) return false
+
+        // Verificar si tiene el permiso
+        return userPermissions.includes(link.permission)
+      })
+    }
+
+    // Fallback: usar links por rol
+    return linksByRole[role] ?? []
+  }, [role, userPermissions])
 
   const handleSignOut = useCallback(async () => {
     await signOut({ callbackUrl: '/iniciar-sesion' })

@@ -52,10 +52,11 @@ export async function middleware(req: NextRequest) {
 
   const rol = (token as any).rol as 'administrador' | 'bodega' | 'sucursal' | 'produccion'
   const sucursalId = (token as any).sucursalId as string | null
+  const permisos = ((token as any).permisos as string[]) || []
 
   // Log para debugging (remover en producción)
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🔐 Middleware - Rol: ${rol}, Ruta: ${pathname}`)
+    console.log(`🔐 Middleware - Rol: ${rol}, Ruta: ${pathname}, Permisos: ${permisos.length}`)
   }
 
   // Control de acceso específico para sucursales
@@ -111,10 +112,35 @@ export async function middleware(req: NextRequest) {
     ],
   }
 
-  const allowed = roleAccess[rol]?.some((re) => re.test(pathname)) ?? false
+  // Verificar acceso por rol (comportamiento base)
+  let allowed = roleAccess[rol]?.some((re) => re.test(pathname)) ?? false
+
+  // ✅ NUEVO: Verificar permisos individuales si no tiene acceso por rol
+  if (!allowed && permisos.length > 0) {
+    // Mapeo de rutas a permisos requeridos
+    const routePermissions: Record<string, string[]> = {
+      '/dashboard/usuarios': ['usuarios.ver'],
+      '/dashboard/productos': ['productos.ver'],
+      '/dashboard/inventario': ['inventario.ver'],
+      '/dashboard/ventas': ['ventas.ver'],
+      '/dashboard/envios': ['envios.ver'],
+      '/dashboard/produccion': ['produccion.ver'],
+      '/dashboard/sucursales': ['sucursales.ver'],
+      '/dashboard/reportes': ['reportes.ver'],
+    }
+
+    // Verificar si tiene permiso para la ruta
+    for (const [route, requiredPerms] of Object.entries(routePermissions)) {
+      if (pathname.startsWith(route)) {
+        // Si tiene al menos uno de los permisos requeridos, permitir acceso
+        allowed = requiredPerms.some(perm => permisos.includes(perm))
+        if (allowed) break
+      }
+    }
+  }
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`✅ Acceso permitido: ${allowed}`)
+    console.log(`✅ Acceso permitido: ${allowed} (Por rol o permisos)`)
   }
 
   if (!allowed) {
