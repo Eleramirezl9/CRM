@@ -49,6 +49,11 @@ export class UsuarioRepository {
           },
         },
         sucursalGerente: true,
+        permisosIndividuales: {
+          include: {
+            permission: true,
+          },
+        },
       },
     })
   }

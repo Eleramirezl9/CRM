@@ -73,14 +73,19 @@ export type PermisoCode = typeof PERMISOS[keyof typeof PERMISOS]
  */
 export async function tienePermiso(permissionCode: PermisoCode): Promise<boolean> {
   const session = await verifySession()
-  const userId = parseInt(session.user.id)
 
   // Administrador tiene todos los permisos
   if (session.user.rol === 'administrador') {
     return true
   }
 
-  // Buscar en la base de datos
+  // ✅ NUEVO: Verificar en los permisos del token (rol + individuales)
+  if (session.user.permisos && session.user.permisos.length > 0) {
+    return session.user.permisos.includes(permissionCode)
+  }
+
+  // Fallback: Buscar en la base de datos si no hay permisos en el token
+  const userId = parseInt(session.user.id)
   const rolId = await getRolIdByUserId(userId)
   if (!rolId) return false
 

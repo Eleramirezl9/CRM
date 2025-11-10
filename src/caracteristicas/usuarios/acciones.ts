@@ -29,6 +29,7 @@ interface ActionResult<T = any> {
   success: boolean
   data?: T
   error?: string
+  message?: string
   fieldErrors?: Record<string, string[]>
 }
 
@@ -381,7 +382,10 @@ export async function asignarPermisosUsuario(
     revalidatePath('/dashboard/usuarios')
     revalidatePath(`/dashboard/usuarios/${usuarioId}/permisos`)
 
-    return { success: true }
+    return {
+      success: true,
+      message: 'Permisos actualizados. El usuario debe cerrar sesión y volver a iniciar sesión para que los cambios surtan efecto.',
+    }
   } catch (error) {
     console.error('Error al asignar permisos:', error)
     return {

@@ -6,6 +6,8 @@ declare module 'next-auth' {
       id: string
       rol: 'administrador' | 'bodega' | 'sucursal' | 'produccion'
       sucursalId?: string | null
+      permisos?: string[] // Permisos del rol + individuales
+      activo?: boolean
     } & DefaultSession['user']
   }
 
@@ -13,6 +15,8 @@ declare module 'next-auth' {
     id: string
     rol: 'administrador' | 'bodega' | 'sucursal' | 'produccion'
     sucursalId?: string | null
+    permisos?: string[]
+    activo?: boolean
   }
 }
 
@@ -21,5 +25,7 @@ declare module 'next-auth/jwt' {
     id: string
     rol: 'administrador' | 'bodega' | 'sucursal' | 'produccion'
     sucursalId?: string | null
+    permisos?: string[] // Permisos combinados (rol + individuales)
+    activo?: boolean
   }
 }

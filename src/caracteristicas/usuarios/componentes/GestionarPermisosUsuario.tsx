@@ -21,6 +21,13 @@ import { ArrowLeft, Save, Shield, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { asignarPermisosUsuario } from '../acciones'
 
+// Tipo para el resultado de la acción
+interface ActionResult {
+  success: boolean
+  error?: string
+  message?: string
+}
+
 interface Permission {
   id: number
   codigo: string
@@ -86,11 +93,11 @@ export function GestionarPermisosUsuario({
       if (!result.success) {
         setError(result.error || 'Error al guardar permisos')
       } else {
-        setSuccess('Permisos actualizados correctamente')
+        setSuccess(result.message || 'Permisos actualizados correctamente')
         setTimeout(() => {
           router.push('/dashboard/usuarios')
           router.refresh()
-        }, 1500)
+        }, 3000)
       }
     })
   }

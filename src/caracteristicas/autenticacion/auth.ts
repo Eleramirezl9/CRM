@@ -144,12 +144,38 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = (user as any).id
         token.rol = (user as any).rol
         token.sucursalId = (user as any).sucursalId ?? null
+        token.activo = true
       }
+
+      // ✅ CRÍTICO: Recargar permisos en cada request o cuando se actualiza
+      // Esto asegura que los cambios de permisos se reflejen sin necesidad de logout
+      if (token.id && (trigger === 'update' || !token.permisos)) {
+        try {
+          const userId = parseInt(String(token.id))
+          const userWithPermissions = await usuarioRepo.findById(userId)
+
+          if (userWithPermissions) {
+            // Combinar permisos del rol + permisos individuales
+            const permisosRol = userWithPermissions.rol.permisos.map(rp => rp.permission.codigo)
+            const permisosIndividuales = userWithPermissions.permisosIndividuales?.map(up => up.permission.codigo) || []
+
+            // Unir ambos conjuntos de permisos (sin duplicados)
+            const todosLosPermisos = [...new Set([...permisosRol, ...permisosIndividuales])]
+
+            token.permisos = todosLosPermisos
+            token.activo = userWithPermissions.activo
+          }
+        } catch (error) {
+          console.error('Error al cargar permisos en token:', error)
+          token.permisos = []
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -157,6 +183,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = String(token.id)
         session.user.rol = token.rol as any
         session.user.sucursalId = (token as any).sucursalId ?? null
+        session.user.permisos = (token.permisos as string[]) || []
+        session.user.activo = (token as any).activo ?? true
       }
       return session
     },

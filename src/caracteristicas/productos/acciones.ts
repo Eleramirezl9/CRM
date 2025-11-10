@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Decimal } from '@prisma/client/runtime/library'
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Generar SKU automático
 function generarSKU(): string {
@@ -20,6 +22,10 @@ export async function crearProducto(data: {
   unidadMedida?: string
 }) {
   try {
+    // ✅ CRÍTICO: Validar permisos
+    await requireRole(['administrador'])
+    await requirePermiso(PERMISOS.PRODUCTOS_CREAR)
+
     const sku = generarSKU()
     
     const producto = await prisma.producto.create({
@@ -44,6 +50,10 @@ export async function crearProducto(data: {
 // Obtener todos los productos con stock consolidado
 export async function obtenerProductos() {
   try {
+    // ✅ CRÍTICO: Validar permisos
+    await requireRole(['administrador', 'bodega'])
+    await requirePermiso(PERMISOS.PRODUCTOS_VER)
+
     const productos = await prisma.producto.findMany({
       include: {
         inventarios: {
