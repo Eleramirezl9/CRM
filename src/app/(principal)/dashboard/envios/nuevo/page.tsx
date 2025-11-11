@@ -1,6 +1,11 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import EnvioForm from '../envio-form'
 
-export default function NuevoEnvioPage() {
+export default async function NuevoEnvioPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador', 'bodega'])
+  await requirePermiso(PERMISOS.ENVIOS_CREAR)
   return (
     <div className="space-y-6 max-w-3xl">
       <div>

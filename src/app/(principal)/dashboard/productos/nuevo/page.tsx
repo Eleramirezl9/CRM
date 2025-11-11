@@ -1,6 +1,11 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import ProductoForm from '../producto-form'
 
-export default function NuevoProductoPage() {
+export default async function NuevoProductoPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador', 'bodega'])
+  await requirePermiso(PERMISOS.PRODUCTOS_CREAR)
   return (
     <div className="space-y-6 max-w-2xl">
       <div>

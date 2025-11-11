@@ -1,6 +1,11 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import SucursalForm from '../sucursal-form'
 
-export default function NuevaSucursalPage() {
+export default async function NuevaSucursalPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador'])
+  await requirePermiso(PERMISOS.SUCURSALES_CREAR)
   return (
     <div className="space-y-6">
       <div>

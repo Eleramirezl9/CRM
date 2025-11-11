@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Decimal } from '@prisma/client/runtime/library'
+import { verifySession } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Registrar venta
 export async function registrarVenta(data: {
@@ -15,6 +17,10 @@ export async function registrarVenta(data: {
   }>
   metodoPago?: string
 }) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.VENTAS_CREAR)
+
   try {
     if (data.items.length === 0) {
       return { success: false, error: 'Debe agregar al menos un producto' }
@@ -113,6 +119,10 @@ export async function registrarVenta(data: {
 
 // Obtener ventas
 export async function obtenerVentas(sucursalId?: string, limit = 50) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.VENTAS_VER)
+
   try {
     const ventas = await prisma.venta.findMany({
       where: sucursalId ? { sucursalId } : undefined,
@@ -142,6 +152,10 @@ export async function obtenerVentas(sucursalId?: string, limit = 50) {
 
 // Obtener estadísticas de ventas
 export async function obtenerEstadisticasVentas(sucursalId?: string) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.VENTAS_VER)
+
   try {
     const where = sucursalId ? { sucursalId } : {}
     
@@ -245,6 +259,10 @@ export async function obtenerEstadisticasVentas(sucursalId?: string) {
 
 // Obtener productos disponibles para venta en una sucursal
 export async function obtenerProductosDisponibles(sucursalId: string) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.VENTAS_VER)
+
   try {
     const inventarios = await prisma.inventario.findMany({
       where: {

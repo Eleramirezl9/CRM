@@ -1,3 +1,5 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { obtenerSucursales } from '@/caracteristicas/sucursales/acciones'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
@@ -8,6 +10,9 @@ import { Eye, Edit, Plus, TrendingUp, TrendingDown } from 'lucide-react'
 export const revalidate = 60 // Revalidar cada minuto
 
 export default async function SucursalesPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador'])
+  await requirePermiso(PERMISOS.SUCURSALES_VER)
   const { success, sucursales, error } = await obtenerSucursales()
 
   if (!success) {

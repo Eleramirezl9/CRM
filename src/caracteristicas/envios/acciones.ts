@@ -2,9 +2,15 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { verifySession } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Obtener todos los envíos
 export async function obtenerEnvios() {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.ENVIOS_VER)
+
   try {
     const envios = await prisma.envio.findMany({
       include: {
@@ -42,6 +48,10 @@ export async function crearEnvio(data: {
   }>
   creadorId?: number
 }) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.ENVIOS_CREAR)
+
   try {
     if (data.sucursalOrigenId === data.sucursalDestinoId) {
       return { success: false, error: 'La sucursal origen y destino no pueden ser la misma' }
@@ -105,6 +115,10 @@ export async function crearEnvio(data: {
 
 // Actualizar estado de envío
 export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.ENVIOS_EDITAR)
+
   try {
     const estadosValidos = ['pendiente', 'en_preparacion', 'en_transito', 'entregado']
     if (!estadosValidos.includes(nuevoEstado)) {
@@ -271,6 +285,9 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
 
 // Sugerir envíos inteligentes basados en stock crítico
 export async function sugerirEnvios() {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.ENVIOS_VER)
   try {
     // Obtener productos con stock crítico
     const inventariosCriticos = await prisma.inventario.findMany({

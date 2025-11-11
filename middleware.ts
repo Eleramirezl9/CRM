@@ -76,41 +76,77 @@ export async function middleware(req: NextRequest) {
 
   // ✅ Estrategia: DENEGAR POR DEFECTO, solo permitir si tiene permisos específicos
   let allowed = false
+  let matchedRoute = false
 
   // 1. Administrador tiene acceso total (sin restricciones)
   if (rol === 'administrador') {
     allowed = true
-  } else {
-    // 2. Para otros roles, VERIFICAR PERMISOS INDIVIDUALES
+  }
+  // 2. Permitir acceso al dashboard principal si tiene al menos 1 permiso
+  else if (pathname === '/dashboard' || pathname === '/dashboard/') {
+    allowed = permisos.length > 0
+    matchedRoute = true
+  }
+  // 3. Para otros roles, VERIFICAR PERMISOS INDIVIDUALES
+  else {
     // Mapeo de rutas a permisos requeridos
     const routePermissions: Record<string, string[]> = {
       '/dashboard/usuarios': ['usuarios.ver'],
+      '/dashboard/usuarios/nuevo': ['usuarios.crear'],
+
       '/dashboard/roles': ['roles.ver'],
+      '/dashboard/roles/': ['roles.ver'],
+
       '/dashboard/productos': ['productos.ver'],
+      '/dashboard/productos/nuevo': ['productos.crear'],
+      '/dashboard/productos/': ['productos.ver'], // Captura /productos/[id]
+
       '/dashboard/inventario': ['inventario.ver'],
+
       '/dashboard/ventas': ['ventas.ver'],
+      '/dashboard/ventas/': ['ventas.ver'], // Captura sub-rutas
+
       '/dashboard/envios': ['envios.ver'],
+      '/dashboard/envios/nuevo': ['envios.crear'],
+      '/dashboard/envios/': ['envios.ver'], // Captura /envios/[id]
+
       '/dashboard/produccion': ['produccion.ver'],
+      '/dashboard/produccion/': ['produccion.ver'], // Captura sub-rutas
+
       '/dashboard/sucursales': ['sucursales.ver'],
+      '/dashboard/sucursales/nueva': ['sucursales.crear'],
+      '/dashboard/sucursales/': ['sucursales.ver'], // Captura /sucursales/[id]
+
       '/dashboard/reportes': ['reportes.ver'],
+      '/dashboard/reportes/': ['reportes.ver'],
+
       '/dashboard/auditoria': ['auditoria.ver'],
     }
 
     // Verificar si tiene permiso para la ruta específica
     for (const [route, requiredPerms] of Object.entries(routePermissions)) {
       if (pathname.startsWith(route)) {
+        matchedRoute = true
         // Debe tener AL MENOS UNO de los permisos requeridos
         allowed = requiredPerms.some(perm => permisos.includes(perm))
+
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Ruta: ${route}, Permisos requeridos: ${requiredPerms}, Usuario tiene: ${permisos.filter(p => requiredPerms.includes(p))}`)
+          console.log(`🔍 Ruta: ${pathname}`)
+          console.log(`   Matched: ${route}`)
+          console.log(`   Permisos requeridos: ${requiredPerms.join(', ')}`)
+          console.log(`   Permisos del usuario: ${permisos.join(', ')}`)
+          console.log(`   Match encontrado: ${permisos.filter(p => requiredPerms.includes(p)).join(', ') || 'NINGUNO'}`)
         }
         break
       }
     }
 
-    // 3. Permitir acceso al dashboard principal si tiene al menos 1 permiso
-    if (pathname === '/dashboard' || pathname === '/dashboard/') {
-      allowed = permisos.length > 0
+    // Si no hizo match con ninguna ruta, DENEGAR por defecto
+    if (!matchedRoute) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⚠️  Ruta NO mapeada: ${pathname} - DENEGANDO acceso por seguridad`)
+      }
+      allowed = false
     }
   }
 

@@ -1,9 +1,14 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { obtenerInventarioGlobal, obtenerAlertasStockCritico } from '@/caracteristicas/inventario/acciones'
 import InventarioVista from './inventario-vista'
 import AlertasStock from './alertas-stock'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/compartido/componentes/ui/tabs'
 
 export default async function InventarioPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador', 'bodega', 'sucursal'])
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
   const { consolidado = [] } = await obtenerInventarioGlobal()
   const { alertas = [] } = await obtenerAlertasStockCritico()
   

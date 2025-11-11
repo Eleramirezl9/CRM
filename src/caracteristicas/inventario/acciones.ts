@@ -2,9 +2,15 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { verifySession } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Obtener inventario global consolidado
 export async function obtenerInventarioGlobal() {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
+
   try {
     const inventarios = await prisma.inventario.findMany({
       include: {
@@ -55,6 +61,10 @@ export async function obtenerInventarioGlobal() {
 
 // Obtener inventario por sucursal
 export async function obtenerInventarioPorSucursal(sucursalId: string) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
+
   try {
     const inventarios = await prisma.inventario.findMany({
       where: { sucursalId },
@@ -81,6 +91,10 @@ export async function registrarMovimiento(data: {
   motivo?: string
   creadorId?: number
 }) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_EDITAR)
+
   try {
     // Obtener inventario actual
     const inventario = await prisma.inventario.findUnique({
@@ -141,6 +155,10 @@ export async function registrarMovimiento(data: {
 
 // Obtener movimientos recientes
 export async function obtenerMovimientosRecientes(limit = 50) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
+
   try {
     const movimientos = await prisma.movimientoInventario.findMany({
       take: limit,
@@ -169,6 +187,10 @@ export async function obtenerMovimientosRecientes(limit = 50) {
 
 // Obtener alertas de stock crítico
 export async function obtenerAlertasStockCritico() {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
+
   try {
     const inventarios = await prisma.$queryRaw<any[]>`
       SELECT 
@@ -199,6 +221,10 @@ export async function inicializarInventario(data: {
   cantidadInicial: number
   stockMinimo: number
 }) {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_EDITAR)
+
   try {
     const inventario = await prisma.inventario.upsert({
       where: {
@@ -229,6 +255,10 @@ export async function inicializarInventario(data: {
 
 // Obtener sucursales disponibles
 export async function obtenerSucursales() {
+  // ✅ Verificación de seguridad
+  await verifySession()
+  await requirePermiso(PERMISOS.INVENTARIO_VER)
+
   try {
     const sucursales = await prisma.sucursal.findMany({
       orderBy: { nombre: 'asc' },

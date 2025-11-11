@@ -1,9 +1,14 @@
+import { requireRole } from '@/compartido/lib/dal'
+import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import ProductosLista from './productos-lista'
 import { Button } from '@/compartido/componentes/ui/button'
 import Link from 'next/link'
 
 export default async function ProductosPage() {
+  // Verificacion de permisos del lado del servidor
+  await requireRole(['administrador', 'bodega'])
+  await requirePermiso(PERMISOS.PRODUCTOS_VER)
   const { productos } = await obtenerProductos()
   
   return (
