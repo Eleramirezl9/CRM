@@ -5,7 +5,6 @@ import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/compartido/componentes/ui/card'
-import { SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/compartido/componentes/ui/select'
 import { Textarea } from '@/compartido/componentes/ui/textarea'
 import { registrarProduccion } from '@/caracteristicas/produccion/acciones'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
@@ -110,19 +109,19 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="producto">¿Qué producto hiciste? *</Label>
-            <SelectTrigger
+            <select
+              id="producto"
               value={formData.productoId}
-              onValueChange={(value) => setFormData({ ...formData, productoId: value })}
+              onChange={(e) => setFormData({ ...formData, productoId: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <SelectValue placeholder="Selecciona el producto" />
-              <SelectContent>
-                {productos.map((producto) => (
-                  <SelectItem key={producto.id} value={producto.id}>
-                    {producto.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectTrigger>
+              <option value="" disabled>Selecciona el producto</option>
+              {productos.map((producto) => (
+                <option key={producto.id} value={producto.id}>
+                  {producto.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
