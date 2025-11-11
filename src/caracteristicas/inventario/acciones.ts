@@ -2,14 +2,21 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { verifySession } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { getCurrentSession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Obtener inventario global consolidado
 export async function obtenerInventarioGlobal() {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', inventarios: [], consolidado: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver inventario', inventarios: [], consolidado: [] }
+  }
 
   try {
     const inventarios = await prisma.inventario.findMany({
@@ -62,8 +69,15 @@ export async function obtenerInventarioGlobal() {
 // Obtener inventario por sucursal
 export async function obtenerInventarioPorSucursal(sucursalId: string) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', inventarios: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver inventario', inventarios: [] }
+  }
 
   try {
     const inventarios = await prisma.inventario.findMany({
@@ -92,8 +106,15 @@ export async function registrarMovimiento(data: {
   creadorId?: number
 }) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_EDITAR)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_EDITAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para editar inventario' }
+  }
 
   try {
     // Obtener inventario actual
@@ -156,8 +177,15 @@ export async function registrarMovimiento(data: {
 // Obtener movimientos recientes
 export async function obtenerMovimientosRecientes(limit = 50) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', movimientos: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver movimientos de inventario', movimientos: [] }
+  }
 
   try {
     const movimientos = await prisma.movimientoInventario.findMany({
@@ -188,8 +216,15 @@ export async function obtenerMovimientosRecientes(limit = 50) {
 // Obtener alertas de stock crítico
 export async function obtenerAlertasStockCritico() {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', alertas: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver alertas de inventario', alertas: [] }
+  }
 
   try {
     const inventarios = await prisma.$queryRaw<any[]>`
@@ -222,8 +257,15 @@ export async function inicializarInventario(data: {
   stockMinimo: number
 }) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_EDITAR)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_EDITAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para editar inventario' }
+  }
 
   try {
     const inventario = await prisma.inventario.upsert({
@@ -256,8 +298,15 @@ export async function inicializarInventario(data: {
 // Obtener sucursales disponibles
 export async function obtenerSucursales() {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.INVENTARIO_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', sucursales: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver sucursales', sucursales: [] }
+  }
 
   try {
     const sucursales = await prisma.sucursal.findMany({

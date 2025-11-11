@@ -6,6 +6,8 @@
 import 'server-only'
 import { verifySession } from './dal'
 import { RoleRepository } from '@/caracteristicas/roles/repositorio'
+import { redirect } from 'next/navigation'
+import { registrarAuditoria } from './auditoria'
 
 const roleRepo = new RoleRepository()
 
@@ -93,13 +95,82 @@ export async function tienePermiso(permissionCode: PermisoCode): Promise<boolean
 }
 
 /**
- * Requiere un permiso específico (lanza error si no lo tiene)
+ * Requiere un permiso específico (usa en PÁGINAS)
+ * Redirige a /no-autorizado si no tiene el permiso
  */
 export async function requirePermiso(permissionCode: PermisoCode): Promise<void> {
   const hasPermission = await tienePermiso(permissionCode)
 
   if (!hasPermission) {
-    throw new Error(`No tienes el permiso necesario: ${permissionCode}`)
+    const session = await verifySession()
+
+    // Registrar intento de acceso no autorizado
+    try {
+      await registrarAuditoria({
+        usuarioId: parseInt(session.user.id),
+        accion: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+        entidad: 'Permission',
+        entidadId: permissionCode,
+        exitoso: false,
+        detalles: {
+          permiso: permissionCode,
+          rol: session.user.rol,
+          permisos: session.user.permisos || []
+        }
+      })
+    } catch (error) {
+      console.error('Error al registrar auditoría:', error)
+    }
+
+    // Redirigir a página de no autorizado
+    redirect('/no-autorizado')
+  }
+}
+
+/**
+ * Verifica si el usuario tiene un permiso (usa en SERVER ACTIONS)
+ * Retorna un objeto con success/error en lugar de redirigir
+ */
+export async function checkPermiso(permissionCode: PermisoCode): Promise<{
+  authorized: boolean
+  error?: string
+}> {
+  try {
+    const hasPermission = await tienePermiso(permissionCode)
+
+    if (!hasPermission) {
+      const session = await verifySession()
+
+      // Registrar intento de acceso no autorizado
+      try {
+        await registrarAuditoria({
+          usuarioId: parseInt(session.user.id),
+          accion: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+          entidad: 'Permission',
+          entidadId: permissionCode,
+          exitoso: false,
+          detalles: {
+            permiso: permissionCode,
+            rol: session.user.rol,
+            permisos: session.user.permisos || []
+          }
+        })
+      } catch (error) {
+        console.error('Error al registrar auditoría:', error)
+      }
+
+      return {
+        authorized: false,
+        error: `No tienes el permiso necesario: ${permissionCode}`
+      }
+    }
+
+    return { authorized: true }
+  } catch (error) {
+    return {
+      authorized: false,
+      error: error instanceof Error ? error.message : 'Error desconocido'
+    }
   }
 }
 

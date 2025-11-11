@@ -3,8 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Decimal } from '@prisma/client/runtime/library'
-import { verifySession } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { getCurrentSession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Registrar venta
 export async function registrarVenta(data: {
@@ -18,8 +18,15 @@ export async function registrarVenta(data: {
   metodoPago?: string
 }) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.VENTAS_CREAR)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.VENTAS_CREAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para crear ventas' }
+  }
 
   try {
     if (data.items.length === 0) {
@@ -120,8 +127,15 @@ export async function registrarVenta(data: {
 // Obtener ventas
 export async function obtenerVentas(sucursalId?: string, limit = 50) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.VENTAS_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', ventas: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.VENTAS_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver ventas', ventas: [] }
+  }
 
   try {
     const ventas = await prisma.venta.findMany({
@@ -153,8 +167,31 @@ export async function obtenerVentas(sucursalId?: string, limit = 50) {
 // Obtener estadísticas de ventas
 export async function obtenerEstadisticasVentas(sucursalId?: string) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.VENTAS_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return {
+      success: false,
+      error: 'No autorizado',
+      estadisticas: {
+        ventasHoy: { total: 0, cantidad: 0 },
+        ventasMes: { total: 0, cantidad: 0 },
+        topProductos: [],
+      },
+    }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.VENTAS_VER)
+  if (!authCheck.authorized) {
+    return {
+      success: false,
+      error: authCheck.error || 'No tienes permisos para ver estadísticas de ventas',
+      estadisticas: {
+        ventasHoy: { total: 0, cantidad: 0 },
+        ventasMes: { total: 0, cantidad: 0 },
+        topProductos: [],
+      },
+    }
+  }
 
   try {
     const where = sucursalId ? { sucursalId } : {}
@@ -260,8 +297,15 @@ export async function obtenerEstadisticasVentas(sucursalId?: string) {
 // Obtener productos disponibles para venta en una sucursal
 export async function obtenerProductosDisponibles(sucursalId: string) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.VENTAS_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', productos: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.VENTAS_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver productos', productos: [] }
+  }
 
   try {
     const inventarios = await prisma.inventario.findMany({

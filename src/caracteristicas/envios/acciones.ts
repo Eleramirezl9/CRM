@@ -2,14 +2,21 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { verifySession } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { getCurrentSession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Obtener todos los envíos
 export async function obtenerEnvios() {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.ENVIOS_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', envios: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error ||'No tienes permisos para ver envíos', envios: [] }
+  }
 
   try {
     const envios = await prisma.envio.findMany({
@@ -49,8 +56,15 @@ export async function crearEnvio(data: {
   creadorId?: number
 }) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.ENVIOS_CREAR)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_CREAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para crear envíos' }
+  }
 
   try {
     if (data.sucursalOrigenId === data.sucursalDestinoId) {
@@ -116,8 +130,15 @@ export async function crearEnvio(data: {
 // Actualizar estado de envío
 export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string) {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.ENVIOS_EDITAR)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_EDITAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para editar envíos' }
+  }
 
   try {
     const estadosValidos = ['pendiente', 'en_preparacion', 'en_transito', 'entregado']
@@ -286,8 +307,16 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
 // Sugerir envíos inteligentes basados en stock crítico
 export async function sugerirEnvios() {
   // ✅ Verificación de seguridad
-  await verifySession()
-  await requirePermiso(PERMISOS.ENVIOS_VER)
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', sugerencias: [] }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para ver envíos', sugerencias: [] }
+  }
+
   try {
     // Obtener productos con stock crítico
     const inventariosCriticos = await prisma.inventario.findMany({

@@ -28,6 +28,7 @@ export type AuditAction =
   | 'CREATE_PRODUCTO'
   | 'UPDATE_PRODUCTO'
   | 'DELETE_PRODUCTO'
+  | 'UNAUTHORIZED_ACCESS_ATTEMPT'
 
 interface AuditLogParams {
   usuarioId?: number | null
