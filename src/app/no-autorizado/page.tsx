@@ -1,10 +1,29 @@
 'use client'
 
-import Link from 'next/link'
 import { Button } from '@/compartido/componentes/ui/button'
-import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
+import { AlertTriangle, LogOut, RefreshCw } from 'lucide-react'
+import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 
 export default function NoAutorizadoPage() {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await signOut({ callbackUrl: '/iniciar-sesion' })
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
+      setIsLoggingOut(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    window.location.reload()
+  }
+
   return (
     <div className="min-h-screen grid place-items-center p-6 bg-gray-50">
       <div className="max-w-md w-full text-center space-y-6 bg-white p-8 rounded-lg shadow-lg">
@@ -25,30 +44,38 @@ export default function NoAutorizadoPage() {
         </div>
 
         <div className="flex flex-col gap-3 pt-4">
-          <Link href="/dashboard">
-            <Button className="w-full" size="lg">
-              <Home className="mr-2 h-4 w-4" />
-              Volver al Inicio
-            </Button>
-          </Link>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleLogout}
+            disabled={isLoggingOut || isRefreshing}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión e Iniciar de Nuevo'}
+          </Button>
 
           <Button
             variant="outline"
             size="lg"
             className="w-full"
-            onClick={() => {
-              // Recargar la página actual para refrescar permisos
-              window.location.reload()
-            }}
+            onClick={handleRefresh}
+            disabled={isLoggingOut || isRefreshing}
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refrescar Permisos
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refrescando...' : 'Refrescar Permisos'}
           </Button>
         </div>
 
         <div className="pt-4 border-t">
           <p className="text-xs text-gray-500">
-            Si acabas de recibir permisos nuevos, haz clic en "Refrescar Permisos"
+            <strong>¿Acabas de recibir permisos?</strong>
+            <br />
+            Haz clic en "Refrescar Permisos" para actualizar.
+            <br />
+            <br />
+            <strong>¿No tienes acceso?</strong>
+            <br />
+            Cierra sesión e inicia de nuevo para refrescar completamente.
           </p>
         </div>
       </div>
