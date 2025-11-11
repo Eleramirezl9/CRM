@@ -1,5 +1,6 @@
 import { requireRole } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { obtenerSucursalPorId } from '@/caracteristicas/sucursales/acciones'
 import { notFound } from 'next/navigation'
 import SucursalForm from '../sucursal-form'
@@ -13,7 +14,13 @@ interface EditarSucursalPageProps {
 export default async function EditarSucursalPage({ params }: EditarSucursalPageProps) {
   // Verificacion de permisos del lado del servidor
   await requireRole(['administrador'])
-  await requirePermiso(PERMISOS.SUCURSALES_EDITAR)
+
+  const tienePermiso = await verificarPermiso(PERMISOS.SUCURSALES_EDITAR)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
+
   const { success, sucursal, error } = await obtenerSucursalPorId(params.id)
 
   if (!success || !sucursal) {

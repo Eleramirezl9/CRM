@@ -95,34 +95,52 @@ export async function tienePermiso(permissionCode: PermisoCode): Promise<boolean
 }
 
 /**
- * Requiere un permiso específico (usa en PÁGINAS)
- * Redirige a /no-autorizado si no tiene el permiso
+ * Verifica si el usuario tiene un permiso (usa en PÁGINAS)
+ * NO lanza excepciones, retorna boolean
+ * Registra intentos no autorizados para auditoría
  */
-export async function requirePermiso(permissionCode: PermisoCode): Promise<void> {
-  const hasPermission = await tienePermiso(permissionCode)
+export async function verificarPermiso(permissionCode: PermisoCode): Promise<boolean> {
+  try {
+    const hasPermission = await tienePermiso(permissionCode)
 
-  if (!hasPermission) {
-    const session = await verifySession()
+    if (!hasPermission) {
+      const session = await verifySession()
 
-    // Registrar intento de acceso no autorizado
-    try {
-      await registrarAuditoria({
-        usuarioId: parseInt(session.user.id),
-        accion: 'UNAUTHORIZED_ACCESS_ATTEMPT',
-        entidad: 'Permission',
-        entidadId: permissionCode,
-        exitoso: false,
-        detalles: {
-          permiso: permissionCode,
-          rol: session.user.rol,
-          permisos: session.user.permisos || []
-        }
-      })
-    } catch (error) {
-      console.error('Error al registrar auditoría:', error)
+      // Registrar intento de acceso no autorizado
+      try {
+        await registrarAuditoria({
+          usuarioId: parseInt(session.user.id),
+          accion: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+          entidad: 'Permission',
+          entidadId: permissionCode,
+          exitoso: false,
+          detalles: {
+            permiso: permissionCode,
+            rol: session.user.rol,
+            permisos: session.user.permisos || []
+          }
+        })
+      } catch (error) {
+        console.error('Error al registrar auditoría:', error)
+      }
+
+      return false
     }
 
-    // Redirigir a página de no autorizado
+    return true
+  } catch (error) {
+    console.error('Error al verificar permiso:', error)
+    return false
+  }
+}
+
+/**
+ * Requiere un permiso específico (DEPRECADO - usar verificarPermiso)
+ * @deprecated Usar verificarPermiso() en su lugar
+ */
+export async function requirePermiso(permissionCode: PermisoCode): Promise<void> {
+  const hasPermission = await verificarPermiso(permissionCode)
+  if (!hasPermission) {
     redirect('/no-autorizado')
   }
 }

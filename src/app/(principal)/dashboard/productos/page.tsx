@@ -1,5 +1,6 @@
 import { requireRole } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import ProductosLista from './productos-lista'
 import { Button } from '@/compartido/componentes/ui/button'
@@ -8,9 +9,15 @@ import Link from 'next/link'
 export default async function ProductosPage() {
   // Verificacion de permisos del lado del servidor
   await requireRole(['administrador', 'bodega'])
-  await requirePermiso(PERMISOS.PRODUCTOS_VER)
+
+  const tienePermiso = await verificarPermiso(PERMISOS.PRODUCTOS_VER)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
+
   const { productos } = await obtenerProductos()
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -19,7 +26,7 @@ export default async function ProductosPage() {
           <Button>+ Nuevo Producto</Button>
         </Link>
       </div>
-      
+
       <ProductosLista productos={productos} />
     </div>
   )

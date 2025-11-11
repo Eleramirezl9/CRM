@@ -1,5 +1,6 @@
 import { requireRole } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { obtenerSucursales } from '@/caracteristicas/sucursales/acciones'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
@@ -12,7 +13,13 @@ export const revalidate = 60 // Revalidar cada minuto
 export default async function SucursalesPage() {
   // Verificacion de permisos del lado del servidor
   await requireRole(['administrador'])
-  await requirePermiso(PERMISOS.SUCURSALES_VER)
+
+  const tienePermiso = await verificarPermiso(PERMISOS.SUCURSALES_VER)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
+
   const { success, sucursales, error } = await obtenerSucursales()
 
   if (!success) {
