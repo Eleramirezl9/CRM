@@ -1,12 +1,8 @@
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import EnvioForm from '../envio-form'
 
 export default async function NuevoEnvioPage() {
-  // Verificacion de permisos del lado del servidor
-  await requireRole(['administrador', 'bodega'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.ENVIOS_CREAR)
 
   if (!tienePermiso) {

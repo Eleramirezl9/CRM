@@ -1,4 +1,3 @@
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
@@ -7,9 +6,6 @@ import { Button } from '@/compartido/componentes/ui/button'
 import Link from 'next/link'
 
 export default async function ProductosPage() {
-  // Verificacion de permisos del lado del servidor
-  await requireRole(['administrador', 'bodega'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.PRODUCTOS_VER)
 
   if (!tienePermiso) {

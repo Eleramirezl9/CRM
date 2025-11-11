@@ -3,7 +3,8 @@
  * ✅ Solo accesible para administradores
  */
 
-import { requireRole } from '@/compartido/lib/dal'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { FormularioUsuario } from '@/caracteristicas/usuarios/componentes/FormularioUsuario'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
@@ -13,8 +14,11 @@ export default async function EditarUsuarioPage({
 }: {
   params: { id: string }
 }) {
-  // ✅ Validación de rol en el servidor
-  await requireRole(['administrador'])
+  const tienePermiso = await verificarPermiso(PERMISOS.USUARIOS_EDITAR)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
 
   const usuarioId = parseInt(params.id)
 

@@ -3,14 +3,19 @@
  * ✅ Solo accesible para administradores
  */
 
-import { requireRole } from '@/compartido/lib/dal'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/compartido/componentes/ui/button'
 import { Shield, Settings } from 'lucide-react'
 
 export default async function RolesPage() {
-  await requireRole(['administrador'])
+  const tienePermiso = await verificarPermiso(PERMISOS.USUARIOS_VER)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
 
   const roles = await prisma.role.findMany({
     include: {

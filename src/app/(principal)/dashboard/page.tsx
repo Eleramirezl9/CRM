@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/component
 import { Badge } from '@/compartido/componentes/ui/badge'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { requireRole } from '@/compartido/lib/dal'
 
 // Revalidar cada 60 segundos
 export const revalidate = 60
@@ -34,9 +33,6 @@ export default async function DashboardPage() {
       redirect(targetUrl)
     }
   }
-
-  // Validar permisos de administrador
-  await requireRole(['administrador'])
 
   // Ejecutar consultas en paralelo para reducir tiempo
   const [{ kpis }, { alertas }, { sucursales }] = await Promise.all([

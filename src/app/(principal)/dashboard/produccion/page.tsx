@@ -1,4 +1,3 @@
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { Suspense } from 'react'
@@ -12,9 +11,6 @@ export const metadata = {
 }
 
 export default async function ProduccionPage() {
-  // Verificacion de permisos del lado del servidor
-  await requireRole(['administrador', 'produccion'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.PRODUCCION_VER)
 
   if (!tienePermiso) {

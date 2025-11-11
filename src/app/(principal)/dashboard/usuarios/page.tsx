@@ -7,15 +7,19 @@
  */
 
 import { Suspense } from 'react'
-import { requireRole } from '@/compartido/lib/dal'
+import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { UsuariosLista } from '@/caracteristicas/usuarios/componentes/UsuariosLista'
 import { Button } from '@/compartido/componentes/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function UsuariosPage() {
-  // ✅ Validación de rol en el servidor
-  await requireRole(['administrador'])
+  const tienePermiso = await verificarPermiso(PERMISOS.USUARIOS_VER)
+
+  if (!tienePermiso) {
+    return <NoAutorizado />
+  }
 
   return (
     <div className="p-8 space-y-6">

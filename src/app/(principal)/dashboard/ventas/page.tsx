@@ -1,4 +1,3 @@
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { obtenerVentas, obtenerEstadisticasVentas } from '@/caracteristicas/ventas/acciones'
@@ -8,9 +7,6 @@ import EstadisticasVentas from './estadisticas-ventas'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/compartido/componentes/ui/tabs'
 
 export default async function VentasPage() {
-  // Verificacion de permisos del lado del servidor
-  await requireRole(['administrador', 'sucursal'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.VENTAS_VER)
 
   if (!tienePermiso) {

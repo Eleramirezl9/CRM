@@ -1,12 +1,8 @@
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import SucursalForm from '../sucursal-form'
 
 export default async function NuevaSucursalPage() {
-  // Verificacion de permisos del lado del servidor
-  await requireRole(['administrador'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.SUCURSALES_CREAR)
 
   if (!tienePermiso) {

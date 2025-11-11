@@ -3,14 +3,10 @@ import EnviosLista from './envios-lista'
 import SugerenciasEnvios from './sugerencias-envios'
 import { Button } from '@/compartido/componentes/ui/button'
 import Link from 'next/link'
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 
 export default async function EnviosPage() {
-  // ✅ Verificación de permisos del lado del servidor
-  await requireRole(['administrador', 'bodega'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.ENVIOS_VER)
 
   if (!tienePermiso) {

@@ -5,7 +5,6 @@
 
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/compartido/lib/dal'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { GestionarPermisosUsuario } from '@/caracteristicas/usuarios/componentes/GestionarPermisosUsuario'
@@ -17,9 +16,6 @@ interface PageProps {
 }
 
 export default async function PermisosUsuarioPage({ params }: PageProps) {
-  // Validar que el usuario actual tenga permisos
-  await requireRole(['administrador'])
-
   const tienePermiso = await verificarPermiso(PERMISOS.USUARIOS_EDITAR)
 
   if (!tienePermiso) {
