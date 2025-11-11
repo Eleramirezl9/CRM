@@ -7,8 +7,8 @@
 
 'use server'
 
-import { requireRole, getCurrentUserId } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verifySession, getCurrentUserId } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { registrarAuditoria } from '@/compartido/lib/auditoria'
 import { checkRateLimit, getRateLimitResetMinutes } from '@/compartido/lib/rate-limit'
 import { invalidarSesionUsuario } from '@/compartido/lib/invalidar-sesion'
@@ -36,12 +36,16 @@ interface ActionResult<T = any> {
 
 /**
  * Listar todos los usuarios
- * Solo administrador
  */
 export async function listarUsuarios(): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_VER)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver usuarios' }
+    }
 
     const usuarios = await usuarioRepo.findAll()
 
@@ -60,8 +64,13 @@ export async function listarUsuarios(): Promise<ActionResult> {
  */
 export async function obtenerUsuario(id: number): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_VER)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver usuarios' }
+    }
 
     const usuario = await usuarioRepo.findById(id)
 
@@ -80,12 +89,16 @@ export async function obtenerUsuario(id: number): Promise<ActionResult> {
 
 /**
  * Crear nuevo usuario
- * Solo administrador
  */
 export async function crearUsuario(input: CreateUsuarioInput): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_CREAR)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_CREAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para crear usuarios' }
+    }
 
     // ✅ Rate Limiting - Prevenir creación masiva de usuarios
     const currentUserId = await getCurrentUserId()
@@ -149,15 +162,19 @@ export async function crearUsuario(input: CreateUsuarioInput): Promise<ActionRes
 
 /**
  * Actualizar usuario existente
- * Solo administrador
  */
 export async function actualizarUsuario(
   id: number,
   input: UpdateUsuarioInput
 ): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_EDITAR)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para editar usuarios' }
+    }
 
     // Validar input
     const validated = updateUsuarioSchema.parse(input)
@@ -221,19 +238,20 @@ export async function cambiarContrasena(
   input: ChangePasswordInput
 ): Promise<ActionResult> {
   try {
+    const session = await verifySession()
     const currentUserId = await getCurrentUserId()
 
-    // Solo puede cambiar su propia contraseña o admin puede cambiar cualquiera
-    const session = await requireRole(['administrador', 'bodega', 'sucursal', 'produccion'])
-    if (session.user.rol !== 'administrador' && currentUserId !== usuarioId) {
+    // Solo puede cambiar su propia contraseña o admin/usuarios con permiso pueden cambiar cualquiera
+    const tienePermisoEditar = await checkPermiso(PERMISOS.USUARIOS_EDITAR)
+    if (!tienePermisoEditar.authorized && currentUserId !== usuarioId) {
       return { success: false, error: 'No tienes permiso para cambiar esta contraseña' }
     }
 
     // Validar input
     const validated = changePasswordSchema.parse(input)
 
-    // Si no es admin, verificar contraseña actual
-    if (session.user.rol !== 'administrador') {
+    // Si no tiene permiso de editar (es decir, está cambiando su propia contraseña), verificar contraseña actual
+    if (!tienePermisoEditar.authorized) {
       const { verify } = await import('@node-rs/argon2')
       const usuario = await usuarioRepo.findById(usuarioId)
       if (!usuario) {
@@ -256,7 +274,7 @@ export async function cambiarContrasena(
       entidad: 'Usuario',
       entidadId: String(usuarioId),
       detalles: {
-        cambiadoPorAdmin: session.user.rol === 'administrador',
+        cambiadoPorOtroUsuario: currentUserId !== usuarioId,
       },
     })
 
@@ -284,8 +302,13 @@ export async function cambiarContrasena(
  */
 export async function toggleUsuarioActivo(id: number, activo: boolean): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_EDITAR)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para editar usuarios' }
+    }
 
     if (activo) {
       await usuarioRepo.activate(id)
@@ -318,15 +341,19 @@ export async function toggleUsuarioActivo(id: number, activo: boolean): Promise<
 
 /**
  * Asignar permisos individuales a un usuario
- * Solo administrador
  */
 export async function asignarPermisosUsuario(
   usuarioId: number,
   permissionIds: number[]
 ): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.USUARIOS_EDITAR)
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.USUARIOS_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para editar usuarios' }
+    }
 
     const { prisma } = await import('@/lib/prisma')
 

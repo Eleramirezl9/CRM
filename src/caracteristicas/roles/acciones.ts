@@ -5,8 +5,8 @@
 
 'use server'
 
-import { requireRole, getCurrentUserId } from '@/compartido/lib/dal'
-import { PERMISOS } from '@/compartido/lib/permisos'
+import { verifySession, getCurrentUserId } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { registrarAuditoria } from '@/compartido/lib/auditoria'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
@@ -19,14 +19,19 @@ interface ActionResult<T = any> {
 
 /**
  * Asignar permisos a un rol
- * Solo administrador
  */
 export async function asignarPermisosRol(
   rolId: number,
   permisosIds: number[]
 ): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.ROLES_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para editar roles' }
+    }
 
     // Verificar que el rol existe
     const rol = await prisma.role.findUnique({
@@ -85,7 +90,13 @@ export async function asignarPermisosRol(
  */
 export async function listarRoles(): Promise<ActionResult> {
   try {
-    await requireRole(['administrador'])
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.ROLES_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver roles' }
+    }
 
     const roles = await prisma.role.findMany({
       include: {

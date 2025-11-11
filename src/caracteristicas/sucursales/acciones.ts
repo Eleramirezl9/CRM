@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from '@/caracteristicas/autenticacion/server'
 import { authOptions } from '@/caracteristicas/autenticacion/server'
 import { z } from 'zod'
-import { requireRole } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verifySession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // ============= GESTIÓN DE SUCURSALES =============
 
@@ -20,9 +20,13 @@ const SucursalSchema = z.object({
 
 export async function obtenerSucursales() {
   try {
-    // ✅ CRÍTICO: Validar permisos
-    await requireRole(['administrador', 'bodega'])
-    await requirePermiso(PERMISOS.SUCURSALES_VER)
+    // ✅ CRÍTICO: Validar sesión y permisos
+    await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.SUCURSALES_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver sucursales', sucursales: [] }
+    }
 
     const sucursales = await prisma.sucursal.findMany({
       include: {

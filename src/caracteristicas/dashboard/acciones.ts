@@ -1,12 +1,22 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/compartido/lib/dal'
+import { verifySession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 export async function obtenerKpisDashboard() {
   try {
-    // ✅ CRÍTICO: Solo administradores pueden ver KPIs globales
-    await requireRole(['administrador'])
+    // ✅ CRÍTICO: Validar sesión y permisos
+    await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.REPORTES_VER)
+    if (!permisoCheck.authorized) {
+      return {
+        success: false,
+        error: permisoCheck.error || 'No tienes permisos para ver KPIs globales',
+        kpis: { ventasTotales: 0, rentabilidad: 0, stockCritico: 0, enviosPendientes: 0 }
+      }
+    }
 
     // Ventas totales del mes
     const inicioMes = new Date()
@@ -95,8 +105,13 @@ export async function obtenerKpisDashboard() {
 
 export async function obtenerAlertasDashboard() {
   try {
-    // ✅ CRÍTICO: Solo administradores pueden ver alertas globales
-    await requireRole(['administrador'])
+    // ✅ CRÍTICO: Validar sesión y permisos
+    await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.REPORTES_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver alertas globales', alertas: [] }
+    }
 
     const alertas: any[] = []
 
@@ -157,8 +172,13 @@ export async function obtenerAlertasDashboard() {
 
 export async function obtenerResumenSucursales() {
   try {
-    // ✅ CRÍTICO: Solo administradores pueden ver resumen de todas las sucursales
-    await requireRole(['administrador'])
+    // ✅ CRÍTICO: Validar sesión y permisos
+    await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.REPORTES_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver resumen de sucursales', sucursales: [] }
+    }
 
     const sucursales = await prisma.sucursal.findMany({
       include: {

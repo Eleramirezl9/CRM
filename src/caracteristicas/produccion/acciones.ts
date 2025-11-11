@@ -2,8 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { getServerSession } from '@/caracteristicas/autenticacion/server'
-import { authOptions } from '@/caracteristicas/autenticacion/server'
+import { verifySession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Registrar producción diaria
 export async function registrarProduccion(data: {
@@ -14,9 +14,12 @@ export async function registrarProduccion(data: {
   observaciones?: string
 }) {
   try {
-    const session = await getServerSession()
-    if (!session || (session.user.rol !== 'produccion' && session.user.rol !== 'administrador')) {
-      return { success: false, error: 'No tienes permisos para registrar producción' }
+    const session = await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCCION_CREAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para registrar producción' }
     }
 
     // Validaciones
@@ -137,9 +140,12 @@ export async function obtenerHistorialProduccion(filtros?: {
 // Marcar producción como enviada
 export async function marcarComoEnviada(id: string) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'No autorizado' }
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCCION_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para marcar producción como enviada' }
     }
 
     const produccion = await prisma.produccionDiaria.update({

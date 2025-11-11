@@ -3,8 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Decimal } from '@prisma/client/runtime/library'
-import { requireRole } from '@/compartido/lib/dal'
-import { requirePermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { verifySession } from '@/compartido/lib/dal'
+import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
 
 // Generar SKU automático
 function generarSKU(): string {
@@ -22,12 +22,17 @@ export async function crearProducto(data: {
   unidadMedida?: string
 }) {
   try {
-    // ✅ CRÍTICO: Validar permisos
-    await requireRole(['administrador'])
-    await requirePermiso(PERMISOS.PRODUCTOS_CREAR)
+    // ✅ CRÍTICO: Validar sesión
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCTOS_CREAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para crear productos' }
+    }
 
     const sku = generarSKU()
-    
+
     const producto = await prisma.producto.create({
       data: {
         sku,
@@ -38,7 +43,7 @@ export async function crearProducto(data: {
         unidadMedida: data.unidadMedida || 'unidad',
       },
     })
-    
+
     revalidatePath('/dashboard/productos')
     return { success: true, producto }
   } catch (error) {
@@ -50,9 +55,14 @@ export async function crearProducto(data: {
 // Obtener todos los productos con stock consolidado
 export async function obtenerProductos() {
   try {
-    // ✅ CRÍTICO: Validar permisos
-    await requireRole(['administrador', 'bodega'])
-    await requirePermiso(PERMISOS.PRODUCTOS_VER)
+    // ✅ CRÍTICO: Validar sesión
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCTOS_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver productos', productos: [] }
+    }
 
     const productos = await prisma.producto.findMany({
       include: {
