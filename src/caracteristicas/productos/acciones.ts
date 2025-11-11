@@ -107,6 +107,14 @@ export async function obtenerProductos() {
 // Obtener producto por ID
 export async function obtenerProductoPorId(id: string) {
   try {
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCTOS_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver productos' }
+    }
+
     const producto = await prisma.producto.findUnique({
       where: { id },
       include: {
@@ -134,6 +142,14 @@ export async function actualizarProducto(id: string, data: {
   unidadMedida?: string
 }) {
   try {
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCTOS_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para editar productos' }
+    }
+
     const updateData: any = {}
     
     if (data.nombre) updateData.nombre = data.nombre
@@ -158,19 +174,27 @@ export async function actualizarProducto(id: string, data: {
 // Eliminar producto
 export async function eliminarProducto(id: string) {
   try {
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCTOS_ELIMINAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para eliminar productos' }
+    }
+
     // Verificar si tiene inventario
     const inventarios = await prisma.inventario.findMany({
       where: { productoId: id },
     })
-    
+
     if (inventarios.some(inv => inv.cantidadActual > 0)) {
       return { success: false, error: 'No se puede eliminar un producto con inventario activo' }
     }
-    
+
     await prisma.producto.delete({
       where: { id },
     })
-    
+
     revalidatePath('/dashboard/productos')
     return { success: true }
   } catch (error) {
@@ -182,6 +206,14 @@ export async function eliminarProducto(id: string) {
 // Obtener productos con stock crítico
 export async function obtenerProductosStockCritico() {
   try {
+    await verifySession()
+
+    // ✅ CRÍTICO: Validar permisos granulares
+    const permisoCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver inventario', productos: [] }
+    }
+
     const productos = await prisma.producto.findMany({
       include: {
         inventarios: {
