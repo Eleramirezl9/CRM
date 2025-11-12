@@ -246,7 +246,7 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
                         key={producto.id}
                         type="button"
                         onClick={() => seleccionarProducto(producto)}
-                        className={`w-full text-left px-4 py-3 hover:bg-accent transition-colors flex items-center justify-between ${
+                        className={`w-full text-left px-4 py-4 hover:bg-accent transition-colors flex items-center justify-between ${
                           index === selectedIndex ? 'bg-accent' : ''
                         } ${formData.productoId === producto.id ? 'bg-primary/10' : ''}`}
                       >

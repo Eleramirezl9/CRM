@@ -1,5 +1,5 @@
 import { getServerSession } from '@/caracteristicas/autenticacion/server'
-import Sidebar from '@/compartido/componentes/layout/sidebar'
+import Sidebar from '@/compartido/componentes/layout/sidebar-mejorado'
 import { SessionRefresher } from '@/compartido/componentes/layout/SessionRefresher'
 import { redirect } from 'next/navigation'
 import { ReactNode } from 'react'
@@ -12,14 +12,22 @@ export default async function PrincipalLayout({ children }: { children: ReactNod
   if (!session) redirect('/iniciar-sesion')
 
   return (
-    <div className="min-h-screen grid grid-cols-[240px_1fr]" suppressHydrationWarning>
+    <div className="min-h-screen flex flex-col md:flex-row" suppressHydrationWarning>
       {/* Componente que verifica cambios de permisos cada 5 segundos */}
       <SessionRefresher />
+
+      {/* Sidebar - Responsive: drawer en móvil, fijo en desktop */}
       <Sidebar
         role={session.user.rol}
         sucursalId={session.user.sucursalId}
       />
-      <main className="p-6">{children}</main>
+
+      {/* Main content - Ajustado para móvil */}
+      <main className="flex-1 p-4 md:p-6 pt-16 md:pt-6 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
     </div>
   )
 }
