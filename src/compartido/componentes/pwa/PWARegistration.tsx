@@ -4,6 +4,14 @@ import { useEffect } from 'react'
 
 export default function PWARegistration() {
   useEffect(() => {
+    // Solo registrar Service Worker en producción
+    const isProduction = process.env.NODE_ENV === 'production'
+
+    if (!isProduction) {
+      console.log('🔧 PWA: Service Worker deshabilitado en desarrollo')
+      return
+    }
+
     if (
       typeof window !== 'undefined' &&
       'serviceWorker' in navigator &&

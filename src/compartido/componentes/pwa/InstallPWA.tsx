@@ -30,68 +30,47 @@ export default function InstallPWA({ variant = 'floating', showManualPrompt = tr
   useEffect(() => {
     if (!isClient) return
 
-    // Detectar si es dispositivo móvil
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase()
-      const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
-      const ios = /iphone|ipad|ipod/.test(userAgent)
-      const android = /android/.test(userAgent)
-
-      setIsMobile(mobile)
-      setIsIOS(ios)
-      setIsAndroid(android)
-
-      console.log('📱 Device detection:', { mobile, ios, android, userAgent: userAgent.substring(0, 50) })
+    // Verificar si fue dismissed recientemente
+    const dismissed = localStorage.getItem('pwa-dismissed')
+    if (dismissed) {
+      const daysSince = (Date.now() - parseInt(dismissed)) / (1000 * 60 * 60 * 24)
+      if (daysSince < 7) {
+        return
+      }
     }
 
-    checkMobile()
+    // Detectar dispositivo móvil
+    const userAgent = navigator.userAgent.toLowerCase()
+    const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
+    const ios = /iphone|ipad|ipod/.test(userAgent)
+    const android = /android/.test(userAgent)
+
+    setIsMobile(mobile)
+    setIsIOS(ios)
+    setIsAndroid(android)
 
     // Verificar si ya está instalada
-    const checkIfInstalled = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches
-      // @ts-ignore - navigator.standalone es específico de iOS
-      const isIOSStandalone = window.navigator.standalone === true
-      const isInstalled = standalone || isIOSStandalone
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+    // @ts-ignore - navigator.standalone es específico de iOS
+    const isIOSStandalone = window.navigator.standalone === true
+    const installed = standalone || isIOSStandalone
 
-      console.log('📦 Is installed:', { standalone, isIOSStandalone, isInstalled })
-      setIsInstalled(isInstalled)
-      return isInstalled
-    }
+    setIsInstalled(installed)
 
-    if (checkIfInstalled()) return
+    if (installed) return
 
-    // Verificar que el Service Worker esté registrado antes de mostrar prompt
-    const checkServiceWorker = async () => {
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.ready
-          console.log('✅ Service Worker está activo:', registration.scope)
-          return true
-        } catch (error) {
-          console.warn('⚠️ Service Worker no está listo:', error)
-          return false
-        }
-      }
-      console.warn('⚠️ Service Worker no está soportado')
-      return false
-    }
-
-    // Capturar el evento beforeinstallprompt
+    // Capturar evento beforeinstallprompt (Android/Desktop)
     const handler = (e: Event) => {
-      console.log('✅ beforeinstallprompt event capturado')
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setHasNativeSupport(true)
-      // Mostrar inmediatamente si tiene soporte nativo
       setShowInstall(true)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
-    console.log('👂 Escuchando beforeinstallprompt...')
 
-    // Detectar si se instaló
+    // Detectar instalación exitosa
     const appInstalledHandler = () => {
-      console.log('✅ App instalada exitosamente')
       setIsInstalled(true)
       setShowInstall(false)
       setDeferredPrompt(null)
@@ -99,36 +78,23 @@ export default function InstallPWA({ variant = 'floating', showManualPrompt = tr
 
     window.addEventListener('appinstalled', appInstalledHandler)
 
-    // Esperar a que el Service Worker esté listo antes de mostrar el prompt
-    let showTimer: NodeJS.Timeout | null = null
+    // Para móviles sin beforeinstallprompt (iOS), mostrar después de 3 segundos
+    let mobileTimer: NodeJS.Timeout | null = null
 
-    checkServiceWorker().then((swReady) => {
-      if (!swReady) {
-        console.warn('⚠️ Service Worker no está listo. Esperando...')
-        // Reintentar después de 5 segundos
-        showTimer = setTimeout(() => {
-          checkServiceWorker().then((ready) => {
-            if (ready || isMobile) {
-              console.log('⏰ Mostrando prompt de instalación')
-              setShowInstall(true)
-            }
-          })
-        }, 5000)
-      } else {
-        // Service Worker listo, mostrar después de 2 segundos
-        showTimer = setTimeout(() => {
-          console.log('⏰ Mostrando prompt de instalación')
-          setShowInstall(true)
-        }, 2000)
-      }
-    })
+    if (mobile && !installed) {
+      mobileTimer = setTimeout(() => {
+        setShowInstall(true)
+      }, 3000)
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', appInstalledHandler)
-      if (showTimer) clearTimeout(showTimer)
+      if (mobileTimer) {
+        clearTimeout(mobileTimer)
+      }
     }
-  }, [isClient, isMobile])
+  }, [isClient])
 
   const handleInstall = async () => {
     // Si tiene soporte nativo del navegador
@@ -151,21 +117,8 @@ export default function InstallPWA({ variant = 'floating', showManualPrompt = tr
 
   const handleDismiss = () => {
     setShowInstall(false)
-    // Volver a mostrar después de 7 días
     localStorage.setItem('pwa-dismissed', Date.now().toString())
   }
-
-  // No mostrar si ya está instalada o si fue descartada recientemente
-  useEffect(() => {
-    const dismissed = localStorage.getItem('pwa-dismissed')
-    if (dismissed) {
-      const daysSince = (Date.now() - parseInt(dismissed)) / (1000 * 60 * 60 * 24)
-      if (daysSince < 7) {
-        setShowInstall(false)
-        return
-      }
-    }
-  }, [])
 
   if (!showInstall || isInstalled) return null
 
