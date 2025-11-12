@@ -52,6 +52,36 @@ Sistema integral para gestionar múltiples sucursales con control de inventarios
 - **Formularios:** React Hook Form + Zod
 - **Gráficos:** Recharts
 - **Fechas:** date-fns
+- **PWA:** Next.js PWA + Web App Manifest + Service Worker
+
+---
+
+## 📱 Aplicación Web Progresiva (PWA)
+
+El sistema puede instalarse como una aplicación nativa en dispositivos móviles:
+
+### ✨ Características PWA:
+- ✅ **Instalación en pantalla de inicio** - Acceso rápido como app nativa
+- ✅ **Modo offline** - Funciona incluso sin conexión a internet
+- ✅ **Experiencia app-like** - Sin barra de direcciones del navegador
+- ✅ **Notificaciones push** - Alertas sobre cambios importantes
+- ✅ **Sincronización en segundo plano** - Sincroniza datos automáticamente
+
+### 📲 Cómo instalar:
+
+**Android (Chrome, Edge, Brave):**
+1. Abre `https://crm-multi-sucursal.vercel.app/iniciar-sesion`
+2. Espera a ver la tarjeta "Instala nuestra app"
+3. Haz clic en "Instalar ahora"
+4. ¡Listo! La app aparecerá en tu pantalla de inicio
+
+**iOS (Safari):**
+1. Abre `https://crm-multi-sucursal.vercel.app/iniciar-sesion` en Safari
+2. Toca el botón Compartir (↑) en la parte inferior
+3. Selecciona "Añadir a Inicio"
+4. ¡Listo! La app aparecerá en tu pantalla de inicio
+
+📖 **[Ver guía completa de PWA →](./PWA-INSTALL-GUIDE.md)**
 
 ---
 
