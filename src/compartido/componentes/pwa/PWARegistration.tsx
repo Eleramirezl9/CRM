@@ -12,6 +12,17 @@ export default function PWARegistration() {
       return
     }
 
+    // Función para limpiar Service Workers viejos
+    const cleanupOldServiceWorkers = async () => {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const registration of registrations) {
+          await registration.unregister()
+          console.log('🧹 Service Worker viejo desregistrado')
+        }
+      }
+    }
+
     if (
       typeof window !== 'undefined' &&
       'serviceWorker' in navigator &&
@@ -37,13 +48,18 @@ export default function PWARegistration() {
         window.location.reload()
       })
 
-      // Registrar el service worker
+      // Registrar el service worker con manejo de errores
       wb.register()
         .then((registration) => {
           console.log('✅ Service Worker registrado exitosamente:', registration.scope)
         })
         .catch((error) => {
           console.error('❌ Error al registrar Service Worker:', error)
+          // Si falla, limpiar SWs viejos e intentar de nuevo
+          cleanupOldServiceWorkers().then(() => {
+            console.log('🔄 Reintentando registro...')
+            setTimeout(() => location.reload(), 1000)
+          })
         })
     } else if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       // Fallback manual si workbox no está disponible

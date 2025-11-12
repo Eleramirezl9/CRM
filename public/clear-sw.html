@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limpiar Service Worker - PWA</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+    .logs {
+      margin-top: 20px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      display: none;
+    }
+    .logs.show {
+      display: block;
+    }
+    .log-entry {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Limpiar Service Worker</h1>
+    <p>Si tienes problemas con la PWA o ves errores 404, usa esta herramienta para limpiar el Service Worker antiguo y forzar un refresh.</p>
+
+    <button id="clearBtn" onclick="clearServiceWorker()">
+      Limpiar y Recargar
+    </button>
+
+    <div id="status" class="status"></div>
+    <div id="logs" class="logs"></div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status')
+    const logsEl = document.getElementById('logs')
+    const btn = document.getElementById('clearBtn')
+
+    function log(message) {
+      const entry = document.createElement('div')
+      entry.className = 'log-entry'
+      entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`
+      logsEl.appendChild(entry)
+      logsEl.classList.add('show')
+      logsEl.scrollTop = logsEl.scrollHeight
+    }
+
+    async function clearServiceWorker() {
+      btn.disabled = true
+      btn.textContent = 'Limpiando...'
+      statusEl.className = 'status info'
+      statusEl.textContent = '⏳ Procesando...'
+      statusEl.style.display = 'block'
+
+      log('Iniciando limpieza...')
+
+      try {
+        if ('serviceWorker' in navigator) {
+          log('Service Worker soportado')
+
+          // Obtener todas las registraciones
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          log(`Encontradas ${registrations.length} registraciones`)
+
+          if (registrations.length === 0) {
+            statusEl.className = 'status info'
+            statusEl.textContent = 'ℹ️ No hay Service Workers registrados'
+            btn.disabled = false
+            btn.textContent = 'Limpiar y Recargar'
+            return
+          }
+
+          // Desregistrar todos
+          for (let i = 0; i < registrations.length; i++) {
+            await registrations[i].unregister()
+            log(`✅ Service Worker ${i + 1} desregistrado`)
+          }
+
+          // Limpiar caches
+          if ('caches' in window) {
+            const cacheNames = await caches.keys()
+            log(`Encontrados ${cacheNames.length} caches`)
+
+            for (const name of cacheNames) {
+              await caches.delete(name)
+              log(`🗑️ Cache "${name}" eliminado`)
+            }
+          }
+
+          // Éxito
+          statusEl.className = 'status success'
+          statusEl.textContent = '✅ Service Workers y caches limpiados exitosamente. Recargando en 2 segundos...'
+          log('✅ Limpieza completada')
+
+          // Recargar página después de 2 segundos
+          setTimeout(() => {
+            log('🔄 Recargando página...')
+            window.location.reload(true)
+          }, 2000)
+
+        } else {
+          statusEl.className = 'status info'
+          statusEl.textContent = 'ℹ️ Service Workers no están soportados en este navegador'
+          log('❌ Service Workers no soportados')
+          btn.disabled = false
+          btn.textContent = 'Limpiar y Recargar'
+        }
+      } catch (error) {
+        statusEl.className = 'status info'
+        statusEl.textContent = '❌ Error: ' + error.message
+        log('❌ Error: ' + error.message)
+        btn.disabled = false
+        btn.textContent = 'Reintentar'
+        console.error(error)
+      }
+    }
+
+    // Auto-limpiar si se pasa ?auto=1 en la URL
+    if (new URLSearchParams(window.location.search).get('auto') === '1') {
+      window.addEventListener('load', () => {
+        setTimeout(clearServiceWorker, 1000)
+      })
+    }
+  </script>
+</body>
+</html>
