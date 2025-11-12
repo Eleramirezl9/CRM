@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Mail, Lock } from 'lucide-react'
-import InstallPWA from '@/compartido/componentes/pwa/InstallPWA'
+import InstallButton from '@/compartido/componentes/pwa/InstallButton'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -120,8 +120,10 @@ export default function LoginForm() {
         </p>
       </form>
 
-      {/* Componente PWA */}
-      <InstallPWA variant="floating" />
+      {/* Botón de Instalación PWA */}
+      <div className="flex justify-center mt-4">
+        <InstallButton />
+      </div>
     </>
   )
 }
