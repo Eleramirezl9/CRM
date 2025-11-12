@@ -19,68 +19,116 @@ export default function InstallPWA({ variant = 'floating', showManualPrompt = tr
   const [isInstalled, setIsInstalled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
+  const [isAndroid, setIsAndroid] = useState(false)
   const [hasNativeSupport, setHasNativeSupport] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
     // Detectar si es dispositivo móvil
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase()
       const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent)
       const ios = /iphone|ipad|ipod/.test(userAgent)
-      
+      const android = /android/.test(userAgent)
+
       setIsMobile(mobile)
       setIsIOS(ios)
+      setIsAndroid(android)
+
+      console.log('📱 Device detection:', { mobile, ios, android, userAgent: userAgent.substring(0, 50) })
     }
 
     checkMobile()
 
     // Verificar si ya está instalada
     const checkIfInstalled = () => {
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        setIsInstalled(true)
-        return true
-      }
-      return false
+      const standalone = window.matchMedia('(display-mode: standalone)').matches
+      // @ts-ignore - navigator.standalone es específico de iOS
+      const isIOSStandalone = window.navigator.standalone === true
+      const isInstalled = standalone || isIOSStandalone
+
+      console.log('📦 Is installed:', { standalone, isIOSStandalone, isInstalled })
+      setIsInstalled(isInstalled)
+      return isInstalled
     }
 
     if (checkIfInstalled()) return
 
+    // Verificar que el Service Worker esté registrado antes de mostrar prompt
+    const checkServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready
+          console.log('✅ Service Worker está activo:', registration.scope)
+          return true
+        } catch (error) {
+          console.warn('⚠️ Service Worker no está listo:', error)
+          return false
+        }
+      }
+      console.warn('⚠️ Service Worker no está soportado')
+      return false
+    }
+
     // Capturar el evento beforeinstallprompt
     const handler = (e: Event) => {
+      console.log('✅ beforeinstallprompt event capturado')
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setHasNativeSupport(true)
-      
-      // Registrar en console para debug
-      console.log('✅ beforeinstallprompt event capturado correctamente')
-      
-      // Mostrar después de 2 segundos
-      setTimeout(() => setShowInstall(true), 2000)
+      // Mostrar inmediatamente si tiene soporte nativo
+      setShowInstall(true)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
-
-    // Si pasaron 3 segundos y no hay nativeSupport pero es móvil, mostrar fallback
-    const fallbackTimer = setTimeout(() => {
-      if (!hasNativeSupport && isMobile && !isInstalled) {
-        console.log('⚠️ No se capturó beforeinstallprompt, mostrando instrucciones manuales')
-        setShowInstall(true)
-      }
-    }, 3000)
+    console.log('👂 Escuchando beforeinstallprompt...')
 
     // Detectar si se instaló
-    window.addEventListener('appinstalled', () => {
+    const appInstalledHandler = () => {
       console.log('✅ App instalada exitosamente')
       setIsInstalled(true)
       setShowInstall(false)
       setDeferredPrompt(null)
+    }
+
+    window.addEventListener('appinstalled', appInstalledHandler)
+
+    // Esperar a que el Service Worker esté listo antes de mostrar el prompt
+    let showTimer: NodeJS.Timeout | null = null
+
+    checkServiceWorker().then((swReady) => {
+      if (!swReady) {
+        console.warn('⚠️ Service Worker no está listo. Esperando...')
+        // Reintentar después de 5 segundos
+        showTimer = setTimeout(() => {
+          checkServiceWorker().then((ready) => {
+            if (ready || isMobile) {
+              console.log('⏰ Mostrando prompt de instalación')
+              setShowInstall(true)
+            }
+          })
+        }, 5000)
+      } else {
+        // Service Worker listo, mostrar después de 2 segundos
+        showTimer = setTimeout(() => {
+          console.log('⏰ Mostrando prompt de instalación')
+          setShowInstall(true)
+        }, 2000)
+      }
     })
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
-      clearTimeout(fallbackTimer)
+      window.removeEventListener('appinstalled', appInstalledHandler)
+      if (showTimer) clearTimeout(showTimer)
     }
-  }, [isMobile, isInstalled, hasNativeSupport])
+  }, [isClient, isMobile])
 
   const handleInstall = async () => {
     // Si tiene soporte nativo del navegador
@@ -270,10 +318,16 @@ export default function InstallPWA({ variant = 'floating', showManualPrompt = tr
                 Instalar ahora
               </button>
             ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-xs text-amber-800 text-center">
-                  ℹ️ Tu navegador aún no está listo para instalar. Intenta más tarde.
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-lg space-y-3">
+                <p className="text-sm text-amber-900 font-medium">
+                  📱 Instrucciones para instalar:
                 </p>
+                <ol className="text-xs text-amber-800 space-y-2 list-decimal list-inside">
+                  <li>Abre el menú del navegador (⋮ o ⋯)</li>
+                  <li>Busca "Instalar app" o "Agregar a pantalla de inicio"</li>
+                  <li>Selecciona la opción</li>
+                  <li>¡Listo! La app aparecerá en tu pantalla</li>
+                </ol>
               </div>
             )}
 

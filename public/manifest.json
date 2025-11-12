@@ -43,37 +43,21 @@
       "short_name": "Venta",
       "description": "Registrar una nueva venta rápidamente",
       "url": "/dashboard/ventas?action=nueva",
-      "icons": [{ "src": "/icons/shortcut-venta.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/manifest-icon-192.maskable.png", "sizes": "192x192" }]
     },
     {
       "name": "Inventario",
       "short_name": "Stock",
       "description": "Ver estado del inventario",
       "url": "/dashboard/inventario",
-      "icons": [{ "src": "/icons/shortcut-inventario.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/manifest-icon-192.maskable.png", "sizes": "192x192" }]
     },
     {
       "name": "Producción",
       "short_name": "Producción",
       "description": "Registrar producción del día",
       "url": "/dashboard/produccion",
-      "icons": [{ "src": "/icons/shortcut-produccion.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop-dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard principal con métricas y KPIs"
-    },
-    {
-      "src": "/screenshots/mobile-ventas.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Punto de venta móvil"
+      "icons": [{ "src": "/icons/manifest-icon-192.maskable.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
