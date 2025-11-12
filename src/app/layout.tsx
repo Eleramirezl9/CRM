@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 import PWARegistration from '@/compartido/componentes/pwa/PWARegistration'
+import ServiceWorkerCleaner from '@/compartido/componentes/pwa/ServiceWorkerCleaner'
 
 export const metadata: Metadata = {
   title: 'Nuestro Pan',
@@ -94,6 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body suppressHydrationWarning>
+        <ServiceWorkerCleaner />
         <PWARegistration />
         <Providers>{children}</Providers>
       </body>
