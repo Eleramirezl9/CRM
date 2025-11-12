@@ -23,12 +23,15 @@ export default function InstallButton() {
     if (!isClient) return
 
     console.log('🎬 InstallButton inicializado')
+    console.log('🌍 URL actual:', window.location.href)
+    console.log('🔒 Protocolo:', window.location.protocol)
 
     // Detectar iOS
     const userAgent = navigator.userAgent.toLowerCase()
     const ios = /iphone|ipad|ipod/.test(userAgent)
     setIsIOS(ios)
     console.log('📱 iOS detectado:', ios)
+    console.log('🌐 User Agent:', userAgent)
 
     // Verificar si ya está instalada
     const standalone = window.matchMedia('(display-mode: standalone)').matches
@@ -37,11 +40,70 @@ export default function InstallButton() {
     const installed = standalone || isIOSStandalone
     setIsInstalled(installed)
     console.log('📦 App instalada:', installed)
+    console.log('📺 Display mode standalone:', standalone)
+    console.log('🍎 iOS standalone:', isIOSStandalone)
 
     if (installed) {
       console.log('✅ App ya instalada, no mostrar botón')
       return
     }
+
+    // Verificar Service Worker
+    const checkServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          console.log('🔧 Service Workers registrados:', registrations.length)
+
+          if (registrations.length > 0) {
+            registrations.forEach((reg, index) => {
+              console.log(`📝 SW ${index + 1}:`, {
+                scope: reg.scope,
+                active: !!reg.active,
+                installing: !!reg.installing,
+                waiting: !!reg.waiting,
+                state: reg.active?.state
+              })
+            })
+          } else {
+            console.warn('⚠️ No hay Service Workers registrados')
+          }
+
+          const controller = navigator.serviceWorker.controller
+          console.log('🎮 SW Controller activo:', !!controller)
+          if (controller) {
+            console.log('📍 SW Controller scope:', controller.scriptURL)
+          }
+        } catch (error) {
+          console.error('❌ Error verificando SW:', error)
+        }
+      } else {
+        console.warn('⚠️ Service Worker NO soportado en este navegador')
+      }
+    }
+
+    // Verificar manifest
+    const checkManifest = async () => {
+      try {
+        const response = await fetch('/manifest.json')
+        if (response.ok) {
+          const manifest = await response.json()
+          console.log('📄 Manifest cargado correctamente:', {
+            name: manifest.name,
+            start_url: manifest.start_url,
+            display: manifest.display,
+            icons: manifest.icons?.length
+          })
+        } else {
+          console.error('❌ Error cargando manifest:', response.status)
+        }
+      } catch (error) {
+        console.error('❌ Error verificando manifest:', error)
+      }
+    }
+
+    checkServiceWorker()
+    checkManifest()
 
     // Capturar evento beforeinstallprompt (Android/Desktop)
     const handler = (e: Event) => {
@@ -63,23 +125,46 @@ export default function InstallButton() {
 
     window.addEventListener('appinstalled', appInstalledHandler)
 
-    // Verificar después de 3 segundos si se capturó el evento
-    setTimeout(() => {
-      if (!deferredPrompt) {
-        console.warn('⚠️ beforeinstallprompt NO se disparó después de 3 segundos')
-        console.log('Posibles razones:')
-        console.log('- Estás en desarrollo (localhost) sin HTTPS real')
-        console.log('- El Service Worker no está activo')
-        console.log('- La app ya fue instalada y rechazada antes')
-        console.log('- No cumple criterios de instalabilidad PWA')
+    // Verificar después de 5 segundos si se capturó el evento
+    const timeoutId = setTimeout(async () => {
+      // Verificar el estado actual del deferredPrompt desde el estado
+      const currentPrompt = deferredPrompt
+
+      if (!currentPrompt) {
+        console.warn('⚠️ beforeinstallprompt NO se disparó después de 5 segundos')
+        console.log('📋 Diagnóstico:')
+
+        // Re-verificar SW después del timeout
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          const controller = navigator.serviceWorker.controller
+          console.log('  - Service Worker activo:', !!controller)
+          console.log('  - Registraciones:', registrations.length)
+        }
+
+        console.log('  - Protocolo HTTPS:', window.location.protocol === 'https:')
+        console.log('  - Es localhost:', window.location.hostname === 'localhost')
+        console.log('  - Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser')
+
+        console.log('\n💡 Posibles causas:')
+        console.log('  1. Service Worker no está activo (requiere build de producción)')
+        console.log('  2. No estás en HTTPS (excepto localhost)')
+        console.log('  3. Ya instalaste y rechazaste la app antes (Chrome recuerda ~3 meses)')
+        console.log('  4. Falta algún criterio de PWA (manifest, icons, etc.)')
+        console.log('  5. Navegador no soporta beforeinstallprompt (solo Chrome/Edge/Samsung)')
+
+        console.log('\n🔍 Para resetear el estado de instalación en Chrome:')
+        console.log('  - chrome://apps/ → Right click → Remove')
+        console.log('  - DevTools → Application → Storage → Clear site data')
       }
-    }, 3000)
+    }, 5000)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', appInstalledHandler)
+      clearTimeout(timeoutId)
     }
-  }, [isClient])
+  }, [isClient, deferredPrompt])
 
   const handleInstall = async () => {
     console.log('🔘 Botón clickeado', { deferredPrompt, isIOS })
