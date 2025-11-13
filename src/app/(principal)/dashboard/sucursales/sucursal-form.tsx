@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { Select, SelectItem } from '@/compartido/componentes/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/compartido/componentes/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { crearSucursal, actualizarSucursal, obtenerGerentes } from '@/caracteristicas/sucursales/acciones'
 import { toast } from 'react-hot-toast'
@@ -180,26 +180,30 @@ export default function SucursalForm({ sucursal, onSuccess }: SucursalFormProps)
           <div className="space-y-2">
             <Label htmlFor="gerenteId">Gerente</Label>
             <Select
-              id="gerenteId"
               value={watch('gerenteId')}
               onValueChange={(value) => setValue('gerenteId', value)}
             >
-              <SelectItem value="">Sin gerente asignado</SelectItem>
-              {isLoadingGerentes ? (
-                <SelectItem value="" disabled>
-                  Cargando gerentes...
-                </SelectItem>
-              ) : gerentes.length === 0 ? (
-                <SelectItem value="" disabled>
-                  No hay gerentes disponibles
-                </SelectItem>
-              ) : (
-                gerentes.map((gerente) => (
-                  <SelectItem key={gerente.id} value={gerente.id.toString()}>
-                    {gerente.nombre} ({gerente.correo})
+              <SelectTrigger>
+                <SelectValue placeholder="Sin gerente asignado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sin gerente asignado</SelectItem>
+                {isLoadingGerentes ? (
+                  <SelectItem value="" disabled>
+                    Cargando gerentes...
                   </SelectItem>
-                ))
-              )}
+                ) : gerentes.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    No hay gerentes disponibles
+                  </SelectItem>
+                ) : (
+                  gerentes.map((gerente) => (
+                    <SelectItem key={gerente.id} value={gerente.id.toString()}>
+                      {gerente.nombre} ({gerente.correo})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               Solo se muestran usuarios con rol "sucursal" sin sucursal asignada

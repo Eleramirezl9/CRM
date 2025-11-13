@@ -4,6 +4,10 @@ import { Suspense } from 'react'
 import ProduccionForm from './produccion-form'
 import ProduccionDiaLista from './produccion-dia-lista'
 import { obtenerProduccionDiaria } from '@/caracteristicas/produccion/acciones'
+import PlantillasSelector from '@/caracteristicas/plantillas-produccion/componentes/PlantillasSelector'
+import { Button } from '@/compartido/componentes/ui/button'
+import Link from 'next/link'
+import { LayoutTemplate } from 'lucide-react'
 
 export const metadata = {
   title: 'Producción Diaria',
@@ -22,12 +26,23 @@ export default async function ProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Producción del Día</h1>
-        <p className="text-muted-foreground mt-2">
-          Registra de forma simple lo que produjiste hoy
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Producción del Día</h1>
+          <p className="text-muted-foreground mt-2">
+            Registra de forma simple lo que produjiste hoy
+          </p>
+        </div>
+        <Link href="/dashboard/produccion/plantillas">
+          <Button variant="outline" className="gap-2">
+            <LayoutTemplate className="w-4 h-4" />
+            Crear Plantilla
+          </Button>
+        </Link>
       </div>
+
+      {/* Selector de Plantillas Rápidas */}
+      <PlantillasSelector />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ProduccionForm />

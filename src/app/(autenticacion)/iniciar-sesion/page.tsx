@@ -23,7 +23,7 @@ export default async function IniciarSesionPage() {
           <div className="text-center space-y-3">
             <div className="flex justify-center mb-2">
               <div className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full text-white text-sm font-semibold shadow-lg">
-                ✨ CRM Sistema
+                ✨Sistema
               </div>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
@@ -38,7 +38,7 @@ export default async function IniciarSesionPage() {
           {/* Footer */}
           <div className="text-center">
             <p className="text-gray-500 text-xs">
-              © 2025 CRM Sistema. Todos los derechos reservados.
+              © 2025 Sistema. Todos los derechos reservados.
             </p>
           </div>
         </div>

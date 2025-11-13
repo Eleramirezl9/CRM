@@ -21,12 +21,12 @@ model Role {
 }
 
 model Permission {
-  id          Int                @id @default(autoincrement())
-  codigo      String             @unique // "usuarios.crear", "usuarios.editar", "ventas.ver", etc.
+  id          Int              @id @default(autoincrement())
+  codigo      String           @unique // "usuarios.crear", "usuarios.editar", "ventas.ver", etc.
   nombre      String
   descripcion String?
-  modulo      String             // "usuarios", "ventas", "inventario", "productos", etc.
-  createdAt   DateTime           @default(now()) @map("creado_at")
+  modulo      String // "usuarios", "ventas", "inventario", "productos", etc.
+  createdAt   DateTime         @default(now()) @map("creado_at")
   roles       RolePermission[]
   usuarios    UserPermission[]
 
@@ -35,24 +35,24 @@ model Permission {
 }
 
 model RolePermission {
-  roleId       Int        @map("role_id")
-  permissionId Int        @map("permission_id")
-  createdAt    DateTime   @default(now()) @map("creado_at")
+  roleId       Int      @map("role_id")
+  permissionId Int      @map("permission_id")
+  createdAt    DateTime @default(now()) @map("creado_at")
 
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
 }
 
 model UserPermission {
-  usuarioId    Int        @map("usuario_id")
-  permissionId Int        @map("permission_id")
-  createdAt    DateTime   @default(now()) @map("creado_at")
+  usuarioId    Int      @map("usuario_id")
+  permissionId Int      @map("permission_id")
+  createdAt    DateTime @default(now()) @map("creado_at")
 
-  usuario      Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([usuarioId, permissionId])
   @@map("user_permissions")
@@ -99,20 +99,20 @@ model Empresa {
 }
 
 model Sucursal {
-  id                 String             @id @default(cuid())
-  empresaId          String             @map("empresa_id")
-  codigoUnico        String             @unique @map("codigo_unico") // SUC-001, SUC-002
+  id                 String            @id @default(cuid())
+  empresaId          String            @map("empresa_id")
+  codigoUnico        String            @unique @map("codigo_unico") // SUC-001, SUC-002
   nombre             String
   direccion          String?
-  gerenteId          Int?               @unique @map("gerente_usuario_id")
-  metaVentas         Decimal            @default(0) @map("meta_ventas") @db.Decimal(12, 2)
-  createdAt          DateTime           @default(now()) @map("creado_at")
-  updatedAt          DateTime           @updatedAt @map("actualizado_at")
-  enviosDestino      Envio[]            @relation("EnvioDestino")
-  enviosOrigen       Envio[]            @relation("EnvioOrigen")
+  gerenteId          Int?              @unique @map("gerente_usuario_id")
+  metaVentas         Decimal           @default(0) @map("meta_ventas") @db.Decimal(12, 2)
+  createdAt          DateTime          @default(now()) @map("creado_at")
+  updatedAt          DateTime          @updatedAt @map("actualizado_at")
+  enviosDestino      Envio[]           @relation("EnvioDestino")
+  enviosOrigen       Envio[]           @relation("EnvioOrigen")
   inventarios        Inventario[]
-  empresa            Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  gerente            Usuario?           @relation("GerenteSucursal", fields: [gerenteId], references: [id])
+  empresa            Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  gerente            Usuario?          @relation("GerenteSucursal", fields: [gerenteId], references: [id])
   ventas             Venta[]
   operacionesDiarias OperacionDiaria[]
 
@@ -120,21 +120,22 @@ model Sucursal {
 }
 
 model Producto {
-  id            String                 @id @default(cuid())
-  sku           String                 @unique
-  nombre        String
-  descripcion   String?
-  costoUnitario Decimal                @map("costo_unitario") @db.Decimal(12, 2)
-  precioVenta   Decimal                @map("precio_venta") @db.Decimal(12, 2)
-  unidadMedida  String?                @map("unidad_medida")
-  createdAt     DateTime               @default(now()) @map("fecha_creacion")
-  updatedAt     DateTime               @updatedAt @map("actualizado_at")
-  envioItems    EnvioItem[]
-  inventarios   Inventario[]
-  movimientos   MovimientoInventario[]
-  ventaItems    VentaItem[]
-  devoluciones  Devolucion[]
-  producciones  ProduccionDiaria[]
+  id             String                    @id @default(cuid())
+  sku            String                    @unique
+  nombre         String
+  descripcion    String?
+  costoUnitario  Decimal                   @map("costo_unitario") @db.Decimal(12, 2)
+  precioVenta    Decimal                   @map("precio_venta") @db.Decimal(12, 2)
+  unidadMedida   String?                   @map("unidad_medida")
+  createdAt      DateTime                  @default(now()) @map("fecha_creacion")
+  updatedAt      DateTime                  @updatedAt @map("actualizado_at")
+  envioItems     EnvioItem[]
+  inventarios    Inventario[]
+  movimientos    MovimientoInventario[]
+  ventaItems     VentaItem[]
+  devoluciones   Devolucion[]
+  producciones   ProduccionDiaria[]
+  plantillaItems PlantillaProduccionItem[]
 
   @@map("productos")
 }
@@ -245,38 +246,38 @@ model Notificacion {
 }
 
 model OperacionDiaria {
-  id                String      @id @default(cuid())
-  sucursalId        String      @map("sucursal_id")
-  fecha             DateTime    @db.Date
-  totalAVender      Decimal     @default(0) @map("total_a_vender") @db.Decimal(12, 2)
-  totalVendido      Decimal     @default(0) @map("total_vendido") @db.Decimal(12, 2)
-  totalCosto        Decimal     @default(0) @map("total_costo") @db.Decimal(12, 2)
-  totalPerdidas     Decimal     @default(0) @map("total_perdidas") @db.Decimal(12, 2)
-  efectivoReal      Decimal     @default(0) @map("efectivo_real") @db.Decimal(12, 2)
-  productosRecibidos Json?      @map("productos_recibidos")
-  productosSobrantes Json?      @map("productos_sobrantes")
-  cerrado           Boolean     @default(false)
-  createdAt         DateTime    @default(now()) @map("creado_at")
-  
-  sucursal          Sucursal    @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
-  devoluciones      Devolucion[]
-  
+  id                 String   @id @default(cuid())
+  sucursalId         String   @map("sucursal_id")
+  fecha              DateTime @db.Date
+  totalAVender       Decimal  @default(0) @map("total_a_vender") @db.Decimal(12, 2)
+  totalVendido       Decimal  @default(0) @map("total_vendido") @db.Decimal(12, 2)
+  totalCosto         Decimal  @default(0) @map("total_costo") @db.Decimal(12, 2)
+  totalPerdidas      Decimal  @default(0) @map("total_perdidas") @db.Decimal(12, 2)
+  efectivoReal       Decimal  @default(0) @map("efectivo_real") @db.Decimal(12, 2)
+  productosRecibidos Json?    @map("productos_recibidos")
+  productosSobrantes Json?    @map("productos_sobrantes")
+  cerrado            Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("creado_at")
+
+  sucursal     Sucursal     @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+  devoluciones Devolucion[]
+
   @@unique([sucursalId, fecha])
   @@map("operaciones_diarias")
 }
 
 model Devolucion {
-  id            Int             @id @default(autoincrement())
-  operacionId   String          @map("operacion_id")
-  productoId    String          @map("producto_id")
+  id            Int      @id @default(autoincrement())
+  operacionId   String   @map("operacion_id")
+  productoId    String   @map("producto_id")
   cantidad      Int
-  motivo        String          // "vencido", "dañado", "no_vendido"
-  costoUnitario Decimal         @map("costo_unitario") @db.Decimal(12, 2)
-  costoTotal    Decimal         @map("costo_total") @db.Decimal(12, 2)
-  createdAt     DateTime        @default(now()) @map("creado_at")
+  motivo        String // "vencido", "dañado", "no_vendido"
+  costoUnitario Decimal  @map("costo_unitario") @db.Decimal(12, 2)
+  costoTotal    Decimal  @map("costo_total") @db.Decimal(12, 2)
+  createdAt     DateTime @default(now()) @map("creado_at")
 
-  operacion     OperacionDiaria @relation(fields: [operacionId], references: [id], onDelete: Cascade)
-  producto      Producto        @relation(fields: [productoId], references: [id])
+  operacion OperacionDiaria @relation(fields: [operacionId], references: [id], onDelete: Cascade)
+  producto  Producto        @relation(fields: [productoId], references: [id])
 
   @@map("devoluciones")
 }
@@ -294,28 +295,61 @@ model ProduccionDiaria {
   createdAt             DateTime @default(now()) @map("creado_at")
   updatedAt             DateTime @updatedAt @map("actualizado_at")
 
-  producto              Producto @relation(fields: [productoId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
 
   @@unique([fecha, productoId])
   @@map("produccion_diaria")
 }
 
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  usuarioId   Int?     @map("usuario_id")
-  accion      String   // "LOGIN", "LOGOUT", "CREATE_USER", "UPDATE_USER", "DELETE_USER", etc.
-  entidad     String?  // "Usuario", "Producto", "Venta", etc.
-  entidadId   String?  @map("entidad_id")
-  detalles    Json?    // Información adicional sobre la acción
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  exitoso     Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("creado_at")
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?     @map("usuario_id")
+  accion    String // "LOGIN", "LOGOUT", "CREATE_USER", "UPDATE_USER", "DELETE_USER", etc.
+  entidad   String? // "Usuario", "Producto", "Venta", etc.
+  entidadId String?  @map("entidad_id")
+  detalles  Json? // Información adicional sobre la acción
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  exitoso   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("creado_at")
 
-  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@index([usuarioId])
   @@index([accion])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// Plantillas de producción diaria
+model PlantillaProduccion {
+  id          String  @id @default(cuid())
+  nombre      String // "Lunes Panadería", "Martes Especial"
+  diaSemana   Int     @map("dia_semana") // 1=Lunes, 2=Martes, ..., 7=Domingo
+  descripcion String?
+  activa      Boolean @default(true)
+  color       String? // Color hex para UI
+
+  items PlantillaProduccionItem[]
+
+  createdAt DateTime @default(now()) @map("creado_at")
+  updatedAt DateTime @updatedAt @map("actualizado_at")
+
+  @@index([diaSemana])
+  @@map("plantillas_produccion")
+}
+
+model PlantillaProduccionItem {
+  id                    String @id @default(cuid())
+  plantillaId           String @map("plantilla_id")
+  productoId            String @map("producto_id")
+  cantidadContenedores  Int    @map("cantidad_contenedores")
+  unidadesPorContenedor Int    @map("unidades_por_contenedor")
+  orden                 Int    @default(0) // Para ordenar en UI
+
+  plantilla PlantillaProduccion @relation(fields: [plantillaId], references: [id], onDelete: Cascade)
+  producto  Producto            @relation(fields: [productoId], references: [id])
+
+  @@unique([plantillaId, productoId])
+  @@map("plantilla_produccion_items")
 }

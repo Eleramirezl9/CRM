@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { Select } from '@/compartido/componentes/ui/select'
+import { NativeSelect } from '@/compartido/componentes/ui/native-select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { crearEnvio } from '@/caracteristicas/envios/acciones'
 import { obtenerSucursales } from '@/caracteristicas/inventario/acciones'
@@ -108,7 +108,7 @@ export default function EnvioForm() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="origen">Sucursal Origen *</Label>
-              <Select
+              <NativeSelect
                 id="origen"
                 value={formData.sucursalOrigenId}
                 onChange={(e) => setFormData({ ...formData, sucursalOrigenId: e.target.value })}
@@ -120,12 +120,12 @@ export default function EnvioForm() {
                     {suc.nombre}
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="destino">Sucursal Destino *</Label>
-              <Select
+              <NativeSelect
                 id="destino"
                 value={formData.sucursalDestinoId}
                 onChange={(e) => setFormData({ ...formData, sucursalDestinoId: e.target.value })}
@@ -137,7 +137,7 @@ export default function EnvioForm() {
                     {suc.nombre}
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
           </div>
         </CardContent>
@@ -150,7 +150,7 @@ export default function EnvioForm() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <div className="flex-1">
-              <Select
+              <NativeSelect
                 value={nuevoItem.productoId}
                 onChange={(e) => setNuevoItem({ ...nuevoItem, productoId: e.target.value })}
               >
@@ -160,7 +160,7 @@ export default function EnvioForm() {
                     {prod.nombre} ({prod.sku})
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
             <div className="w-32">
               <Input

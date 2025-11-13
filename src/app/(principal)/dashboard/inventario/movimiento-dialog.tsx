@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { Select } from '@/compartido/componentes/ui/select'
+import { NativeSelect as Select } from '@/compartido/componentes/ui/native-select'
 import { registrarMovimiento } from '@/caracteristicas/inventario/acciones'
 import { useSucursales } from '@/compartido/hooks/useSucursales'
 import { useRouter } from 'next/navigation'
