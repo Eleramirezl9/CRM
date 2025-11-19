@@ -84,4 +84,19 @@ const DialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) =
 )
 DialogFooter.displayName = 'DialogFooter'
 
-export { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription }
+interface DialogTriggerProps extends HTMLAttributes<HTMLDivElement> {
+  asChild?: boolean
+  children: ReactNode
+}
+
+const DialogTrigger = ({ children, asChild, ...props }: DialogTriggerProps) => {
+  if (asChild) {
+    // Si asChild es true, renderizar directamente el hijo
+    return <>{children}</>
+  }
+
+  return <div {...props}>{children}</div>
+}
+DialogTrigger.displayName = 'DialogTrigger'
+
+export { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogTrigger }

@@ -12,6 +12,8 @@ async function main() {
   await prisma.devolucion.deleteMany()
   await prisma.operacionDiaria.deleteMany()
   await prisma.produccionDiaria.deleteMany()
+  await prisma.plantillaProduccionItem.deleteMany() // Primero los items de plantillas
+  await prisma.plantillaProduccion.deleteMany() // Luego las plantillas
   await prisma.notificacion.deleteMany()
   await prisma.movimientoInventario.deleteMany()
   await prisma.ventaItem.deleteMany()
@@ -21,6 +23,7 @@ async function main() {
   await prisma.inventario.deleteMany()
   await prisma.producto.deleteMany()
   await prisma.sucursal.deleteMany()
+  await prisma.userPermission.deleteMany() // Primero permisos de usuario
   await prisma.usuario.deleteMany()
   await prisma.empresa.deleteMany()
   await prisma.rolePermission.deleteMany()

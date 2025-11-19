@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/caracteristicas/autenticacion/server'
 import { authOptions } from '@/caracteristicas/autenticacion/server'
 import { prisma } from '@/lib/prisma'
+import { detectarTurno } from '@/compartido/lib/turnos'
 
 // GET: Obtener producción diaria
 export async function GET(request: NextRequest) {
@@ -91,12 +92,14 @@ export async function POST(request: NextRequest) {
 
     // Crear o actualizar producción
     const fechaProduccion = fecha ? new Date(fecha) : new Date()
+    const turno = detectarTurno(fechaProduccion)
 
     const produccion = await prisma.produccionDiaria.upsert({
       where: {
-        fecha_productoId: {
+        fecha_productoId_turno: {
           fecha: fechaProduccion,
           productoId,
+          turno,
         },
       },
       update: {
@@ -113,6 +116,7 @@ export async function POST(request: NextRequest) {
         totalUnidades,
         observaciones,
         registradoPor: parseInt(session.user.id),
+        turno,
       },
       include: {
         producto: true,

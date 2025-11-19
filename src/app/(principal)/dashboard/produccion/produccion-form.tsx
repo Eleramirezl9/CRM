@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Textarea } from '@/compartido/componentes/ui/textarea'
 import { registrarProduccion } from '@/caracteristicas/produccion/acciones'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
-import { Package, Calculator, Search, Check } from 'lucide-react'
+import { Package, Calculator, Search, Check, Sun, Moon } from 'lucide-react'
+import { detectarTurno, getTurnoLabel, getTurnoHorario, type Turno } from '@/compartido/lib/turnos'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/compartido/componentes/ui/select'
+import { NumeroFormateado } from '@/compartido/componentes/NumeroFormateado'
 
 type Producto = {
   id: string
@@ -27,11 +30,18 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    productoId: string
+    cantidadContenedores: number
+    unidadesPorContenedor: number
+    observaciones: string
+    turno: Turno
+  }>({
     productoId: '',
     cantidadContenedores: 0,
     unidadesPorContenedor: 0,
     observaciones: '',
+    turno: detectarTurno(),
   })
 
   // Cargar productos
@@ -165,6 +175,7 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
         cantidadContenedores: 0,
         unidadesPorContenedor: 0,
         observaciones: '',
+        turno: detectarTurno(),
       })
       setBusqueda('')
 
@@ -280,6 +291,54 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
             )}
           </div>
 
+          {/* Selector de turno */}
+          <div className="space-y-2">
+            <Label htmlFor="turno">Turno de Producción</Label>
+            <Select
+              value={formData.turno}
+              onValueChange={(value: Turno) => setFormData({ ...formData, turno: value })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  <div className="flex items-center gap-2">
+                    {formData.turno === 'manana' ? (
+                      <Sun className="w-4 h-4 text-yellow-500" />
+                    ) : (
+                      <Moon className="w-4 h-4 text-blue-500" />
+                    )}
+                    <span>{getTurnoLabel(formData.turno)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({getTurnoHorario(formData.turno)})
+                    </span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manana">
+                  <div className="flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-yellow-500" />
+                    <div>
+                      <div className="font-medium">Mañana</div>
+                      <div className="text-xs text-muted-foreground">4:00 AM - 4:00 PM</div>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="noche">
+                  <div className="flex items-center gap-2">
+                    <Moon className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <div className="font-medium">Noche</div>
+                      <div className="text-xs text-muted-foreground">5:00 PM - 3:00 AM</div>
+                    </div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-muted-foreground">
+              Se detectó automáticamente el turno actual. Puedes cambiarlo si es necesario.
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cantidadContenedores">
@@ -346,7 +405,7 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
                 <span className="text-sm font-medium text-primary">Total Calculado</span>
               </div>
               <div className="text-3xl font-bold text-primary">
-                {totalUnidades.toLocaleString()} {productoSeleccionado?.unidadMedida || 'unidades'}
+                <NumeroFormateado valor={totalUnidades} /> {productoSeleccionado?.unidadMedida || 'unidades'}
               </div>
               <div className="text-sm text-muted-foreground mt-2">
                 {formData.cantidadContenedores} contenedores × {formData.unidadesPorContenedor} unidades

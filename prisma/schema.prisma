@@ -283,21 +283,26 @@ model Devolucion {
 }
 
 model ProduccionDiaria {
-  id                    String   @id @default(cuid())
-  fecha                 DateTime @default(now()) @db.Date
-  productoId            String   @map("producto_id")
-  cantidadContenedores  Int      @default(0) @map("cantidad_contenedores") // Ej: 100 latas
-  unidadesPorContenedor Int      @default(1) @map("unidades_por_contenedor") // Ej: 24 panes por lata
-  totalUnidades         Int      @default(0) @map("total_unidades") // 100 * 24 = 2400
+  id                    String    @id @default(cuid())
+  fecha                 DateTime  @default(now()) @db.Date
+  productoId            String    @map("producto_id")
+  cantidadContenedores  Int       @default(0) @map("cantidad_contenedores") // Ej: 100 latas
+  unidadesPorContenedor Int       @default(1) @map("unidades_por_contenedor") // Ej: 24 panes por lata
+  totalUnidades         Int       @default(0) @map("total_unidades") // 100 * 24 = 2400
   observaciones         String?
-  registradoPor         Int      @map("registrado_por")
-  enviado               Boolean  @default(false) // Si ya fue enviado a bodega
-  createdAt             DateTime @default(now()) @map("creado_at")
-  updatedAt             DateTime @updatedAt @map("actualizado_at")
+  registradoPor         Int       @map("registrado_por")
+  turno                 String    @default("manana") // "manana" o "noche"
+  enviado               Boolean   @default(false) // Si ya fue enviado a bodega
+  firmadoPor            Int?      @map("firmado_por") // Usuario que firmó el envío
+  fechaFirma            DateTime? @map("fecha_firma") // Cuándo se firmó
+  confirmadoPor         Int?      @map("confirmado_por") // Usuario de bodega que confirmó
+  fechaConfirmacion     DateTime? @map("fecha_confirmacion") // Cuándo se confirmó en bodega
+  createdAt             DateTime  @default(now()) @map("creado_at")
+  updatedAt             DateTime  @updatedAt @map("actualizado_at")
 
   producto Producto @relation(fields: [productoId], references: [id])
 
-  @@unique([fecha, productoId])
+  @@unique([fecha, productoId, turno])
   @@map("produccion_diaria")
 }
 

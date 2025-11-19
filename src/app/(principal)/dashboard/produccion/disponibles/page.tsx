@@ -1,5 +1,6 @@
 import { obtenerProductosDisponibles } from '@/caracteristicas/produccion/acciones'
 import ProductosDisponibles from './productos-disponibles'
+import { verifySession } from '@/compartido/lib/dal'
 
 export const metadata = {
   title: 'Productos Disponibles - Producción',
@@ -7,6 +8,7 @@ export const metadata = {
 }
 
 export default async function ProductosDisponiblesPage() {
+  const session = await verifySession()
   const result = await obtenerProductosDisponibles()
 
   return (
@@ -18,7 +20,13 @@ export default async function ProductosDisponiblesPage() {
         </p>
       </div>
 
-      <ProductosDisponibles productos={result.productos || []} />
+      <ProductosDisponibles
+        productos={result.productos || []}
+        usuario={{
+          nombre: (session.user as any).nombre || 'Usuario',
+          correo: (session.user as any).correo || ''
+        }}
+      />
     </div>
   )
 }

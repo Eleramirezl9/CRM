@@ -6,6 +6,7 @@ import { Badge } from '@/compartido/componentes/ui/badge'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
 import { CheckCircle2, Circle, Calendar, Package } from 'lucide-react'
+import { NumeroFormateado } from '@/compartido/componentes/NumeroFormateado'
 
 type Produccion = {
   id: string
@@ -106,7 +107,7 @@ export default function HistorialProduccion({ producciones: produccionesIniciale
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Unidades</div>
-              <div className="text-2xl font-bold">{totalUnidades.toLocaleString()}</div>
+              <div className="text-2xl font-bold"><NumeroFormateado valor={totalUnidades} /></div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Enviados</div>
@@ -140,7 +141,7 @@ export default function HistorialProduccion({ producciones: produccionesIniciale
                       {fecha}
                     </CardTitle>
                     <Badge variant="outline">
-                      {totalDia.toLocaleString()} unidades
+                      <NumeroFormateado valor={totalDia} /> unidades
                     </Badge>
                   </div>
                 </CardHeader>
@@ -175,7 +176,7 @@ export default function HistorialProduccion({ producciones: produccionesIniciale
 
                         <div className="flex items-center gap-4 text-sm">
                           <div className="font-semibold text-lg text-primary">
-                            {produccion.totalUnidades.toLocaleString()} {produccion.producto.unidadMedida || 'unidades'}
+                            <NumeroFormateado valor={produccion.totalUnidades} /> {produccion.producto.unidadMedida || 'unidades'}
                           </div>
                         </div>
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { verifySession } from '@/compartido/lib/dal'
 import { checkPermiso, PERMISOS } from '@/compartido/lib/permisos'
+import { detectarTurno } from '@/compartido/lib/turnos'
 import {
   crearPlantillaSchema,
   editarPlantillaSchema,
@@ -301,14 +302,17 @@ export async function aplicarPlantilla(data: unknown) {
         }))
 
     // Crear producción para cada item
+    const turno = detectarTurno(fechaProduccion)
+
     for (const item of itemsParaCrear) {
       const totalUnidades = item.cantidadContenedores * item.unidadesPorContenedor
 
       const produccion = await prisma.produccionDiaria.upsert({
         where: {
-          fecha_productoId: {
+          fecha_productoId_turno: {
             fecha: fechaProduccion,
-            productoId: item.productoId
+            productoId: item.productoId,
+            turno
           }
         },
         update: {
@@ -322,7 +326,8 @@ export async function aplicarPlantilla(data: unknown) {
           cantidadContenedores: item.cantidadContenedores,
           unidadesPorContenedor: item.unidadesPorContenedor,
           totalUnidades,
-          registradoPor: parseInt(session.user.id)
+          registradoPor: parseInt(session.user.id),
+          turno
         },
         include: {
           producto: true

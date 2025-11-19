@@ -24,6 +24,12 @@ export default async function ProduccionPage() {
   const hoy = new Date()
   const result = await obtenerProduccionDiaria(hoy)
 
+  // Asegurar que el tipo turno sea correcto
+  const producciones = (result.producciones || []).map(p => ({
+    ...p,
+    turno: p.turno as any // TypeScript cast para evitar error de tipo en serialización
+  }))
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -49,7 +55,7 @@ export default async function ProduccionPage() {
 
         <div>
           <Suspense fallback={<div>Cargando...</div>}>
-            <ProduccionDiaLista producciones={result.producciones || []} />
+            <ProduccionDiaLista producciones={producciones} />
           </Suspense>
         </div>
       </div>
