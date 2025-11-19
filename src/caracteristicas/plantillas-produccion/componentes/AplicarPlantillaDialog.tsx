@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,25 @@ import {
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { ScrollArea } from '@/compartido/componentes/ui/scroll-area'
 import { Badge } from '@/compartido/componentes/ui/badge'
-import { Check, Package, Calculator } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/compartido/componentes/ui/select'
+import { Check, Package, Calculator, Plus, Trash2 } from 'lucide-react'
 import { aplicarPlantilla } from '../acciones'
+import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import { PlantillaConItems } from '../tipos'
 import { toast } from 'sonner'
+
+type Producto = {
+  id: string
+  nombre: string
+  unidadMedida: string | null
+}
 
 interface AplicarPlantillaDialogProps {
   plantilla: PlantillaConItems
@@ -32,6 +45,7 @@ type ItemAjustado = {
   cantidadContenedores: number
   unidadesPorContenedor: number
   totalUnidades: number
+  esNuevo?: boolean
 }
 
 export default function AplicarPlantillaDialog({
@@ -41,17 +55,45 @@ export default function AplicarPlantillaDialog({
   onSuccess
 }: AplicarPlantillaDialogProps) {
   const [loading, setLoading] = useState(false)
+  const [productos, setProductos] = useState<Producto[]>([])
+
+  // Estado para el diálogo de agregar producto
+  const [agregarDialogOpen, setAgregarDialogOpen] = useState(false)
+  const [nuevoProductoId, setNuevoProductoId] = useState('')
+  const [nuevoCantidadContenedores, setNuevoCantidadContenedores] = useState(1)
+  const [nuevoUnidadesPorContenedor, setNuevoUnidadesPorContenedor] = useState(1)
 
   // Inicializar con los valores de la plantilla
-  const [items, setItems] = useState<ItemAjustado[]>(() =>
-    plantilla.items.map(item => ({
-      productoId: item.productoId,
-      productoNombre: item.producto.nombre,
-      cantidadContenedores: item.cantidadContenedores,
-      unidadesPorContenedor: item.unidadesPorContenedor,
-      totalUnidades: item.cantidadContenedores * item.unidadesPorContenedor
-    }))
-  )
+  const [items, setItems] = useState<ItemAjustado[]>([])
+
+  // Resetear items cuando cambia la plantilla o se abre el diálogo
+  useEffect(() => {
+    if (open && plantilla) {
+      setItems(
+        plantilla.items.map(item => ({
+          productoId: item.productoId,
+          productoNombre: item.producto.nombre,
+          cantidadContenedores: item.cantidadContenedores,
+          unidadesPorContenedor: item.unidadesPorContenedor,
+          totalUnidades: item.cantidadContenedores * item.unidadesPorContenedor,
+          esNuevo: false
+        }))
+      )
+    }
+  }, [open, plantilla])
+
+  // Cargar productos disponibles
+  useEffect(() => {
+    async function cargarProductos() {
+      const result = await obtenerProductos()
+      if (result.success && result.productos) {
+        setProductos(result.productos)
+      }
+    }
+    if (open) {
+      cargarProductos()
+    }
+  }, [open])
 
   function actualizarItem(index: number, campo: 'cantidadContenedores' | 'unidadesPorContenedor', valor: number) {
     setItems(prev => {
@@ -65,6 +107,58 @@ export default function AplicarPlantillaDialog({
       }
       return nuevos
     })
+  }
+
+  function abrirAgregarProducto() {
+    if (productos.length === 0) {
+      toast.error('No hay productos disponibles')
+      return
+    }
+
+    // Buscar un producto que no esté ya agregado
+    const productoDisponible = productos.find(
+      p => !items.some(item => item.productoId === p.id)
+    )
+
+    if (!productoDisponible) {
+      toast.error('Todos los productos ya están agregados')
+      return
+    }
+
+    // Resetear valores y abrir diálogo
+    setNuevoProductoId(productoDisponible.id)
+    setNuevoCantidadContenedores(1)
+    setNuevoUnidadesPorContenedor(1)
+    setAgregarDialogOpen(true)
+  }
+
+  function confirmarAgregarProducto() {
+    if (!nuevoProductoId) {
+      toast.error('Debes seleccionar un producto')
+      return
+    }
+
+    const producto = productos.find(p => p.id === nuevoProductoId)
+    if (!producto) return
+
+    setItems(prev => [
+      ...prev,
+      {
+        productoId: producto.id,
+        productoNombre: producto.nombre,
+        cantidadContenedores: nuevoCantidadContenedores,
+        unidadesPorContenedor: nuevoUnidadesPorContenedor,
+        totalUnidades: nuevoCantidadContenedores * nuevoUnidadesPorContenedor,
+        esNuevo: true
+      }
+    ])
+
+    setAgregarDialogOpen(false)
+    toast.success(`${producto.nombre} agregado`)
+  }
+
+  function eliminarItem(index: number) {
+    setItems(prev => prev.filter((_, i) => i !== index))
   }
 
   async function handleAplicar() {
@@ -99,8 +193,13 @@ export default function AplicarPlantillaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col p-0 gap-0 w-[95vw] sm:w-full">
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b">
+      <DialogContent className="
+        w-[95vw] sm:w-full max-w-2xl
+        max-h-[95vh] sm:max-h-[90vh]
+        flex flex-col p-0 gap-0
+        overflow-hidden
+      ">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b shrink-0">
           <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2">
             <Check className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 shrink-0" />
             <span className="line-clamp-2">Revisar y Aplicar Plantilla</span>
@@ -110,7 +209,7 @@ export default function AplicarPlantillaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-4 sm:px-6 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 min-h-0">
           <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Resumen total */}
             <div className="p-3 sm:p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
@@ -126,6 +225,25 @@ export default function AplicarPlantillaDialog({
               </div>
             </div>
 
+            {/* Botón para agregar productos */}
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">
+                Productos ({items.length})
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={abrirAgregarProducto}
+                disabled={loading}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Agregar Producto</span>
+                <span className="sm:hidden">Agregar</span>
+              </Button>
+            </div>
+
             {/* Lista de productos editables */}
             <div className="space-y-2 sm:space-y-3">
               {items.map((item, index) => (
@@ -137,10 +255,27 @@ export default function AplicarPlantillaDialog({
                     <Package className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
                     <h3 className="font-medium flex-1 text-sm sm:text-base line-clamp-2">
                       {item.productoNombre}
+                      {item.esNuevo && (
+                        <Badge variant="outline" className="ml-2 text-xs text-green-600 border-green-600">
+                          Nuevo
+                        </Badge>
+                      )}
                     </h3>
                     <Badge variant="outline" className="text-xs shrink-0">
                       {item.totalUnidades.toLocaleString()} un.
                     </Badge>
+                    {item.esNuevo && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => eliminarItem(index)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="sr-only">Eliminar</span>
+                      </Button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -180,7 +315,7 @@ export default function AplicarPlantillaDialog({
               ))}
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 shrink-0">
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -203,6 +338,103 @@ export default function AplicarPlantillaDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Diálogo para agregar nuevo producto */}
+      <Dialog open={agregarDialogOpen} onOpenChange={setAgregarDialogOpen}>
+        <DialogContent className="w-[90vw] sm:w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" />
+              Agregar Producto
+            </DialogTitle>
+            <DialogDescription>
+              Selecciona el producto y configura las cantidades
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Selector de producto */}
+            <div>
+              <Label htmlFor="nuevo-producto" className="text-sm">Producto *</Label>
+              <Select
+                value={nuevoProductoId}
+                onValueChange={setNuevoProductoId}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productos
+                    .filter(p => !items.some(item => item.productoId === p.id))
+                    .map((producto) => (
+                      <SelectItem key={producto.id} value={producto.id}>
+                        {producto.nombre}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cantidades */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="nuevo-contenedores" className="text-sm">
+                  Contenedores
+                </Label>
+                <Input
+                  id="nuevo-contenedores"
+                  type="number"
+                  min="1"
+                  value={nuevoCantidadContenedores}
+                  onChange={(e) => setNuevoCantidadContenedores(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nuevo-unidades" className="text-sm">
+                  Unid./Cont.
+                </Label>
+                <Input
+                  id="nuevo-unidades"
+                  type="number"
+                  min="1"
+                  value={nuevoUnidadesPorContenedor}
+                  onChange={(e) => setNuevoUnidadesPorContenedor(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Total calculado */}
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="text-sm text-muted-foreground">Total</div>
+              <div className="text-xl font-bold text-primary">
+                {(nuevoCantidadContenedores * nuevoUnidadesPorContenedor).toLocaleString()} unidades
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {nuevoCantidadContenedores} × {nuevoUnidadesPorContenedor}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAgregarDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarAgregarProducto}
+              disabled={!nuevoProductoId}
+            >
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

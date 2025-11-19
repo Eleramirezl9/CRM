@@ -12,7 +12,7 @@ export default async function PrincipalLayout({ children }: { children: ReactNod
   if (!session) redirect('/iniciar-sesion')
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" suppressHydrationWarning>
+    <div className="h-screen flex flex-col md:flex-row overflow-hidden" suppressHydrationWarning>
       {/* Componente que verifica cambios de permisos cada 5 segundos */}
       <SessionRefresher />
 
@@ -22,9 +22,9 @@ export default async function PrincipalLayout({ children }: { children: ReactNod
         sucursalId={session.user.sucursalId}
       />
 
-      {/* Main content - Ajustado para móvil */}
-      <main className="flex-1 p-4 md:p-6 pt-16 md:pt-6 overflow-x-hidden">
-        <div className="max-w-7xl mx-auto">
+      {/* Main content - Con scroll independiente */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pt-16 md:pt-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           {children}
         </div>
       </main>

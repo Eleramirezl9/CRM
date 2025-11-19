@@ -5,6 +5,14 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   // Ignorar errores de precaching para archivos faltantes
   buildExcludes: [/middleware-manifest\.json$/, /app-build-manifest\.json$/],
+  // Excluir archivos problemáticos del precaching
+  publicExcludes: ['!robots.txt', '!sitemap.xml'],
+  // Configuración adicional para evitar errores 404
+  fallbacks: {
+    document: '/offline',
+  },
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,

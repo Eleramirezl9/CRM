@@ -241,8 +241,8 @@ export default function Sidebar({ role, sucursalId }: SidebarProps) {
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar - Oculto en móviles */}
-      <aside className="hidden md:flex flex-col h-screen w-[240px] border-r bg-background">
+      {/* Desktop Sidebar - Oculto en móviles, fijo en desktop */}
+      <aside className="hidden md:flex flex-col h-screen w-[240px] border-r bg-background flex-shrink-0">
         <SidebarContent
           role={role}
           sucursalId={sucursalId}

@@ -21,13 +21,13 @@ import EliminarPlantillaDialog from './EliminarPlantillaDialog'
 import { useSwipeable } from 'react-swipeable'
 
 const DIAS_SEMANA = [
-  { numero: 1, nombre: 'Lunes', color: 'bg-blue-500', textColor: 'text-blue-500', borderColor: 'border-blue-500' },
-  { numero: 2, nombre: 'Martes', color: 'bg-green-500', textColor: 'text-green-500', borderColor: 'border-green-500' },
-  { numero: 3, nombre: 'Miércoles', color: 'bg-yellow-500', textColor: 'text-yellow-500', borderColor: 'border-yellow-500' },
-  { numero: 4, nombre: 'Jueves', color: 'bg-orange-500', textColor: 'text-orange-500', borderColor: 'border-orange-500' },
-  { numero: 5, nombre: 'Viernes', color: 'bg-purple-500', textColor: 'text-purple-500', borderColor: 'border-purple-500' },
-  { numero: 6, nombre: 'Sábado', color: 'bg-pink-500', textColor: 'text-pink-500', borderColor: 'border-pink-500' },
-  { numero: 7, nombre: 'Domingo', color: 'bg-red-500', textColor: 'text-red-500', borderColor: 'border-red-500' }
+  { numero: 1, nombre: 'Lunes', bgColor: '#3b82f6', borderColor: 'border-blue-500' },
+  { numero: 2, nombre: 'Martes', bgColor: '#22c55e', borderColor: 'border-green-500' },
+  { numero: 3, nombre: 'Miércoles', bgColor: '#eab308', borderColor: 'border-yellow-500' },
+  { numero: 4, nombre: 'Jueves', bgColor: '#f97316', borderColor: 'border-orange-500' },
+  { numero: 5, nombre: 'Viernes', bgColor: '#a855f7', borderColor: 'border-purple-500' },
+  { numero: 6, nombre: 'Sábado', bgColor: '#ec4899', borderColor: 'border-pink-500' },
+  { numero: 7, nombre: 'Domingo', bgColor: '#ef4444', borderColor: 'border-red-500' }
 ]
 
 interface PlantillasSelectorProps {
@@ -144,43 +144,48 @@ export default function PlantillasSelector({ onPlantillaAplicada }: PlantillasSe
 
         <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
           {/* Selector de días deslizable */}
-          <div className="flex items-center gap-2" {...swipeHandlers}>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => cambiarDia(-1)}
-              disabled={loading}
-              className="shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-
-            <div className="flex-1 text-center relative">
-              <div
-                className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg ${diaInfo?.color} text-white shadow-md transition-all duration-200 hover:shadow-lg`}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 w-full" {...swipeHandlers}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => cambiarDia(-1)}
+                disabled={loading}
+                className="shrink-0"
               >
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="font-bold text-sm sm:text-lg">{diaInfo?.nombre}</span>
-                {esHoy && (
-                  <Badge variant="secondary" className="sm:hidden text-xs">
-                    Hoy
-                  </Badge>
-                )}
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+
+              <div className="flex-1 text-center">
+                <div
+                  className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
+                  style={{ backgroundColor: diaInfo?.bgColor }}
+                >
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 !text-white" />
+                  <span className="font-bold text-sm sm:text-lg !text-white">{diaInfo?.nombre}</span>
+                  {esHoy && (
+                    <Badge variant="secondary" className="sm:hidden text-xs">
+                      Hoy
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                Desliza ← →
-              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => cambiarDia(1)}
+                disabled={loading}
+                className="shrink-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => cambiarDia(1)}
-              disabled={loading}
-              className="shrink-0"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            {/* Texto de instrucción debajo de los botones */}
+            <div className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+              Desliza ← →
+            </div>
           </div>
 
           {/* Lista de plantillas */}
@@ -210,7 +215,11 @@ export default function PlantillasSelector({ onPlantillaAplicada }: PlantillasSe
                         <h3 className="font-semibold text-sm sm:text-base flex items-center gap-2 flex-wrap">
                           <span className="truncate">{plantilla.nombre}</span>
                           {esHoy && (
-                            <Badge variant="outline" className={`${diaInfo?.textColor} text-xs shrink-0`}>
+                            <Badge
+                              variant="outline"
+                              className="text-xs shrink-0"
+                              style={{ color: diaInfo?.bgColor, borderColor: diaInfo?.bgColor }}
+                            >
                               Sugerida
                             </Badge>
                           )}
@@ -222,7 +231,10 @@ export default function PlantillasSelector({ onPlantillaAplicada }: PlantillasSe
                         )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Badge className={`${diaInfo?.color} text-white text-xs`}>
+                        <Badge
+                          className="!text-white text-xs"
+                          style={{ backgroundColor: diaInfo?.bgColor }}
+                        >
                           {plantilla.items.length}
                         </Badge>
                         <DropdownMenu>
@@ -279,7 +291,8 @@ export default function PlantillasSelector({ onPlantillaAplicada }: PlantillasSe
                     <Button
                       onClick={() => handleAbrirDialog(plantilla)}
                       disabled={loading}
-                      className={`w-full ${diaInfo?.color} hover:opacity-90 text-white h-9 sm:h-10`}
+                      className="w-full hover:opacity-90 !text-white h-9 sm:h-10"
+                      style={{ backgroundColor: diaInfo?.bgColor }}
                       size="sm"
                     >
                       <Zap className="w-4 h-4 mr-2" />

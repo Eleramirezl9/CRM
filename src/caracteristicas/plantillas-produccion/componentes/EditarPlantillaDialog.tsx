@@ -12,10 +12,17 @@ import {
 import { Button } from '@/compartido/componentes/ui/button'
 import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
-import { ScrollArea } from '@/compartido/componentes/ui/scroll-area'
 import { Badge } from '@/compartido/componentes/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/compartido/componentes/ui/select'
 import { Pencil, Package, Plus, Trash2, Save } from 'lucide-react'
 import { editarPlantilla } from '../acciones'
+import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import { PlantillaConItems } from '../tipos'
 import { toast } from 'sonner'
 
@@ -36,6 +43,12 @@ type ItemEditable = {
   eliminar?: boolean
 }
 
+type Producto = {
+  id: string
+  nombre: string
+  unidadMedida: string | null
+}
+
 const DIAS_SEMANA = [
   { numero: 1, nombre: 'Lunes' },
   { numero: 2, nombre: 'Martes' },
@@ -53,14 +66,34 @@ export default function EditarPlantillaDialog({
   onSuccess
 }: EditarPlantillaDialogProps) {
   const [loading, setLoading] = useState(false)
-  const [nombre, setNombre] = useState(plantilla.nombre)
-  const [descripcion, setDescripcion] = useState(plantilla.descripcion || '')
-  const [diaSemana, setDiaSemana] = useState(plantilla.diaSemana)
+  const [nombre, setNombre] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [diaSemana, setDiaSemana] = useState(1)
   const [items, setItems] = useState<ItemEditable[]>([])
+  const [productos, setProductos] = useState<Producto[]>([])
 
-  // Inicializar items cuando cambia la plantilla
+  // Estado para el diálogo de agregar producto
+  const [agregarDialogOpen, setAgregarDialogOpen] = useState(false)
+  const [nuevoProductoId, setNuevoProductoId] = useState('')
+  const [nuevoCantidadContenedores, setNuevoCantidadContenedores] = useState(1)
+  const [nuevoUnidadesPorContenedor, setNuevoUnidadesPorContenedor] = useState(1)
+
+  // Cargar productos disponibles
   useEffect(() => {
-    if (plantilla) {
+    async function cargarProductos() {
+      const result = await obtenerProductos()
+      if (result.success && result.productos) {
+        setProductos(result.productos)
+      }
+    }
+    if (open) {
+      cargarProductos()
+    }
+  }, [open])
+
+  // Resetear todos los campos cuando cambia la plantilla o se abre el diálogo
+  useEffect(() => {
+    if (open && plantilla) {
       setNombre(plantilla.nombre)
       setDescripcion(plantilla.descripcion || '')
       setDiaSemana(plantilla.diaSemana)
@@ -75,7 +108,7 @@ export default function EditarPlantillaDialog({
         }))
       )
     }
-  }, [plantilla])
+  }, [open, plantilla])
 
   function actualizarItem(index: number, campo: keyof ItemEditable, valor: any) {
     setItems(prev => {
@@ -99,6 +132,53 @@ export default function EditarPlantillaDialog({
       delete nuevos[index].eliminar
       return nuevos
     })
+  }
+
+  function abrirAgregarProducto() {
+    if (productos.length === 0) {
+      toast.error('No hay productos disponibles')
+      return
+    }
+
+    // Buscar un producto que no esté ya agregado
+    const productoDisponible = productos.find(
+      p => !items.some(item => item.productoId === p.id && !item.eliminar)
+    )
+
+    if (!productoDisponible) {
+      toast.error('Todos los productos ya están agregados')
+      return
+    }
+
+    // Resetear valores y abrir diálogo
+    setNuevoProductoId(productoDisponible.id)
+    setNuevoCantidadContenedores(1)
+    setNuevoUnidadesPorContenedor(1)
+    setAgregarDialogOpen(true)
+  }
+
+  function confirmarAgregarProducto() {
+    if (!nuevoProductoId) {
+      toast.error('Debes seleccionar un producto')
+      return
+    }
+
+    const producto = productos.find(p => p.id === nuevoProductoId)
+    if (!producto) return
+
+    setItems(prev => [
+      ...prev,
+      {
+        productoId: producto.id,
+        productoNombre: producto.nombre,
+        cantidadContenedores: nuevoCantidadContenedores,
+        unidadesPorContenedor: nuevoUnidadesPorContenedor,
+        orden: prev.length
+      }
+    ])
+
+    setAgregarDialogOpen(false)
+    toast.success(`${producto.nombre} agregado a la plantilla`)
   }
 
   async function handleGuardar() {
@@ -144,8 +224,13 @@ export default function EditarPlantillaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col p-0 gap-0 w-[95vw] sm:w-full">
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b">
+      <DialogContent className="
+        w-[95vw] sm:w-full max-w-2xl
+        max-h-[95vh] sm:max-h-[90vh]
+        flex flex-col p-0 gap-0
+        overflow-hidden
+      ">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b shrink-0">
           <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2">
             <Pencil className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 shrink-0" />
             <span className="line-clamp-2">Editar Plantilla</span>
@@ -155,7 +240,7 @@ export default function EditarPlantillaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-4 sm:px-6 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 min-h-0">
           <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Información básica */}
             <div className="space-y-3">
@@ -204,6 +289,18 @@ export default function EditarPlantillaDialog({
                 <Label className="text-sm font-semibold">
                   Productos ({itemsActivos.length})
                 </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={abrirAgregarProducto}
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Agregar Producto</span>
+                  <span className="sm:hidden">Agregar</span>
+                </Button>
               </div>
 
               {items.length === 0 ? (
@@ -223,14 +320,42 @@ export default function EditarPlantillaDialog({
                     >
                       <div className="flex items-start sm:items-center gap-2 mb-2 sm:mb-3">
                         <Package className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
-                        <h3 className="font-medium flex-1 text-sm sm:text-base line-clamp-2">
-                          {item.productoNombre}
-                          {item.eliminar && (
-                            <Badge variant="destructive" className="ml-2 text-xs">
-                              Se eliminará
-                            </Badge>
+                        <div className="flex-1">
+                          {!item.id ? (
+                            // Selector para nuevos productos
+                            <Select
+                              value={item.productoId}
+                              onValueChange={(value) => {
+                                const producto = productos.find(p => p.id === value)
+                                if (producto) {
+                                  actualizarItem(index, 'productoId', value)
+                                  actualizarItem(index, 'productoNombre', producto.nombre)
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Selecciona un producto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {productos.map((producto) => (
+                                  <SelectItem key={producto.id} value={producto.id}>
+                                    {producto.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            // Nombre fijo para productos existentes
+                            <h3 className="font-medium text-sm sm:text-base line-clamp-2">
+                              {item.productoNombre}
+                              {item.eliminar && (
+                                <Badge variant="destructive" className="ml-2 text-xs">
+                                  Se eliminará
+                                </Badge>
+                              )}
+                            </h3>
                           )}
-                        </h3>
+                        </div>
                         {item.eliminar ? (
                           <Button
                             type="button"
@@ -303,7 +428,7 @@ export default function EditarPlantillaDialog({
               )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 shrink-0">
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -327,6 +452,103 @@ export default function EditarPlantillaDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Diálogo para agregar nuevo producto */}
+      <Dialog open={agregarDialogOpen} onOpenChange={setAgregarDialogOpen}>
+        <DialogContent className="w-[90vw] sm:w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" />
+              Agregar Producto
+            </DialogTitle>
+            <DialogDescription>
+              Selecciona el producto y configura las cantidades
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Selector de producto */}
+            <div>
+              <Label htmlFor="nuevo-producto" className="text-sm">Producto *</Label>
+              <Select
+                value={nuevoProductoId}
+                onValueChange={setNuevoProductoId}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productos
+                    .filter(p => !items.some(item => item.productoId === p.id && !item.eliminar))
+                    .map((producto) => (
+                      <SelectItem key={producto.id} value={producto.id}>
+                        {producto.nombre}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cantidades */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="nuevo-contenedores" className="text-sm">
+                  Contenedores
+                </Label>
+                <Input
+                  id="nuevo-contenedores"
+                  type="number"
+                  min="1"
+                  value={nuevoCantidadContenedores}
+                  onChange={(e) => setNuevoCantidadContenedores(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nuevo-unidades" className="text-sm">
+                  Unid./Cont.
+                </Label>
+                <Input
+                  id="nuevo-unidades"
+                  type="number"
+                  min="1"
+                  value={nuevoUnidadesPorContenedor}
+                  onChange={(e) => setNuevoUnidadesPorContenedor(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Total calculado */}
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="text-sm text-muted-foreground">Total</div>
+              <div className="text-xl font-bold text-primary">
+                {(nuevoCantidadContenedores * nuevoUnidadesPorContenedor).toLocaleString()} unidades
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {nuevoCantidadContenedores} × {nuevoUnidadesPorContenedor}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAgregarDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarAgregarProducto}
+              disabled={!nuevoProductoId}
+            >
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

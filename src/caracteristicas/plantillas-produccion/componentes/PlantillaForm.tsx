@@ -14,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/compartido/componentes/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/compartido/componentes/ui/dialog'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import { Plus, X, Save, Package } from 'lucide-react'
 import { crearPlantilla, editarPlantilla } from '../acciones'
@@ -55,6 +63,12 @@ export default function PlantillaForm({ plantilla, onSuccess, onCancel }: Planti
   const [loading, setLoading] = useState(false)
   const [productos, setProductos] = useState<Producto[]>([])
 
+  // Estado para el diálogo de agregar producto
+  const [agregarDialogOpen, setAgregarDialogOpen] = useState(false)
+  const [nuevoProductoId, setNuevoProductoId] = useState('')
+  const [nuevoCantidadContenedores, setNuevoCantidadContenedores] = useState(1)
+  const [nuevoUnidadesPorContenedor, setNuevoUnidadesPorContenedor] = useState(1)
+
   const [formData, setFormData] = useState({
     nombre: plantilla?.nombre || '',
     diaSemana: plantilla?.diaSemana || 1,
@@ -81,21 +95,50 @@ export default function PlantillaForm({ plantilla, onSuccess, onCancel }: Planti
     cargarProductos()
   }, [])
 
-  function agregarItem() {
+  function abrirAgregarProducto() {
     if (productos.length === 0) {
       toast.error('No hay productos disponibles')
       return
     }
 
+    // Buscar un producto que no esté ya agregado
+    const productoDisponible = productos.find(
+      p => !items.some(item => item.productoId === p.id)
+    )
+
+    if (!productoDisponible) {
+      toast.error('Todos los productos ya están agregados')
+      return
+    }
+
+    // Resetear valores y abrir diálogo
+    setNuevoProductoId(productoDisponible.id)
+    setNuevoCantidadContenedores(1)
+    setNuevoUnidadesPorContenedor(1)
+    setAgregarDialogOpen(true)
+  }
+
+  function confirmarAgregarProducto() {
+    if (!nuevoProductoId) {
+      toast.error('Debes seleccionar un producto')
+      return
+    }
+
+    const producto = productos.find(p => p.id === nuevoProductoId)
+    if (!producto) return
+
     setItems(prev => [
       ...prev,
       {
-        productoId: productos[0].id,
-        cantidadContenedores: 1,
-        unidadesPorContenedor: 1,
+        productoId: producto.id,
+        cantidadContenedores: nuevoCantidadContenedores,
+        unidadesPorContenedor: nuevoUnidadesPorContenedor,
         orden: prev.length
       }
     ])
+
+    setAgregarDialogOpen(false)
+    toast.success(`${producto.nombre} agregado a la plantilla`)
   }
 
   function eliminarItem(index: number) {
@@ -207,7 +250,7 @@ export default function PlantillaForm({ plantilla, onSuccess, onCancel }: Planti
             <CardTitle>Productos en la Plantilla</CardTitle>
             <Button
               type="button"
-              onClick={agregarItem}
+              onClick={abrirAgregarProducto}
               size="sm"
               variant="outline"
             >
@@ -320,6 +363,103 @@ export default function PlantillaForm({ plantilla, onSuccess, onCancel }: Planti
           {loading ? 'Guardando...' : plantilla ? 'Actualizar Plantilla' : 'Crear Plantilla'}
         </Button>
       </div>
+
+      {/* Diálogo para agregar nuevo producto */}
+      <Dialog open={agregarDialogOpen} onOpenChange={setAgregarDialogOpen}>
+        <DialogContent className="w-[90vw] sm:w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" />
+              Agregar Producto
+            </DialogTitle>
+            <DialogDescription>
+              Selecciona el producto y configura las cantidades
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Selector de producto */}
+            <div>
+              <Label htmlFor="nuevo-producto" className="text-sm">Producto *</Label>
+              <Select
+                value={nuevoProductoId}
+                onValueChange={setNuevoProductoId}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productos
+                    .filter(p => !items.some(item => item.productoId === p.id))
+                    .map((producto) => (
+                      <SelectItem key={producto.id} value={producto.id}>
+                        {producto.nombre}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cantidades */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="nuevo-contenedores" className="text-sm">
+                  Contenedores
+                </Label>
+                <Input
+                  id="nuevo-contenedores"
+                  type="number"
+                  min="1"
+                  value={nuevoCantidadContenedores}
+                  onChange={(e) => setNuevoCantidadContenedores(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nuevo-unidades" className="text-sm">
+                  Unid./Cont.
+                </Label>
+                <Input
+                  id="nuevo-unidades"
+                  type="number"
+                  min="1"
+                  value={nuevoUnidadesPorContenedor}
+                  onChange={(e) => setNuevoUnidadesPorContenedor(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Total calculado */}
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="text-sm text-muted-foreground">Total</div>
+              <div className="text-xl font-bold text-primary">
+                {(nuevoCantidadContenedores * nuevoUnidadesPorContenedor).toLocaleString()} unidades
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {nuevoCantidadContenedores} × {nuevoUnidadesPorContenedor}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAgregarDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarAgregarProducto}
+              disabled={!nuevoProductoId}
+            >
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }
