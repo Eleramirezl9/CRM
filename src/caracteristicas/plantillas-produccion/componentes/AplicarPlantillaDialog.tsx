@@ -408,13 +408,13 @@ export default function AplicarPlantillaDialog({
             </div>
 
             {/* Total calculado */}
-            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-              <div className="text-sm text-muted-foreground">Total</div>
-              <div className="text-xl font-bold text-primary">
-                {(nuevoCantidadContenedores * nuevoUnidadesPorContenedor).toLocaleString()} unidades
+            <div className="p-4 rounded-lg border border-primary/30">
+              <div className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Total</div>
+              <div className="text-3xl font-bold text-primary mt-2">
+                {(nuevoCantidadContenedores * nuevoUnidadesPorContenedor).toLocaleString()}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {nuevoCantidadContenedores} × {nuevoUnidadesPorContenedor}
+              <div className="text-sm text-slate-500 mt-2 font-medium">
+                {nuevoCantidadContenedores} × {nuevoUnidadesPorContenedor} unidades
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { obtenerKpisDashboard, obtenerAlertasDashboard, obtenerResumenSucursales } from '@/caracteristicas/dashboard/acciones'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <PageTitle title="Dashboard" icon="dashboard" />
         <p className="text-muted-foreground mt-1">Visión general del negocio</p>
       </div>
       

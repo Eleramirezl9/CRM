@@ -5,6 +5,7 @@
 
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/compartido/componentes/ui/button'
@@ -36,13 +37,8 @@ export default async function RolesPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="w-8 h-8" />
-          Gestión de Roles y Permisos
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Administra los roles y sus permisos asignados
-        </p>
+        <PageTitle title="Gestión de Roles" icon="roles" />
+        <p className="text-muted-foreground mt-1">Administra los roles y sus permisos asignados</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

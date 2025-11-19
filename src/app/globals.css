@@ -49,6 +49,40 @@
   --radius: 0.5rem;
 }
 
+/* Clase para Montserrat */
+.font-montserrat {
+  font-family: var(--font-montserrat, 'Montserrat', sans-serif);
+}
+
+/* Animación de color alternando para "Nuestro Pan" */
+@keyframes colorPulse {
+  0%, 100% {
+    color: #ff8c42;
+    opacity: 0.6;
+    text-shadow: 0 2px 8px rgba(255, 140, 66, 0.15), 0 1px 3px rgba(255, 140, 66, 0.08);
+  }
+  50% {
+    color: #ff8c42;
+    opacity: 1;
+    text-shadow: 0 2px 12px rgba(255, 140, 66, 0.4), 0 1px 4px rgba(255, 140, 66, 0.25);
+  }
+}
+
+.animate-color-pulse {
+  animation: colorPulse 4s ease-in-out infinite;
+}
+
+/* Animación secuencial por letra */
+@keyframes letterGlow {
+  0% { opacity: 0.6; text-shadow: 0 2px 8px rgba(255, 140, 66, 0.15); }
+  50% { opacity: 1; text-shadow: 0 2px 12px rgba(255, 140, 66, 0.4); }
+  100% { opacity: 0.6; text-shadow: 0 2px 8px rgba(255, 140, 66, 0.15); }
+}
+
+.animate-letter-glow {
+  animation: letterGlow 4s ease-in-out infinite;
+}
+
 * {
   @apply border-border;
 }

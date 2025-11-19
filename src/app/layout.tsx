@@ -1,8 +1,15 @@
 import type { Metadata, Viewport } from 'next'
+import { Montserrat } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import PWARegistration from '@/compartido/componentes/pwa/PWARegistration'
 import ServiceWorkerCleaner from '@/compartido/componentes/pwa/ServiceWorkerCleaner'
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-montserrat',
+})
 
 export const metadata: Metadata = {
   title: 'Nuestro Pan',
@@ -76,7 +83,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={montserrat.variable}>
       <head>
         <meta name="application-name" content="CRM Multi-Sucursal" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

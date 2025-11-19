@@ -1,5 +1,6 @@
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import { obtenerVentas, obtenerEstadisticasVentas } from '@/caracteristicas/ventas/acciones'
 import VentasRegistro from './ventas-registro'
 import VentasLista from './ventas-lista'
@@ -17,9 +18,9 @@ export default async function VentasPage() {
   const { estadisticas } = await obtenerEstadisticasVentas()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-8">
       <div>
-        <h1 className="text-3xl font-bold">Ventas</h1>
+        <PageTitle title="Gestión de Ventas" icon="ventas" />
         <p className="text-muted-foreground mt-1">Registro rápido y seguimiento de ventas</p>
       </div>
 

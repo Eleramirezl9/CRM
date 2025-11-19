@@ -1,6 +1,7 @@
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 
 const data = [
   { name: 'Ene', ventas: 4000, utilidad: 1000 },
@@ -14,8 +15,11 @@ export default function ReportesCliente() {
     alert(`Descarga simulada de ${type.toUpperCase()}`)
   }
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Reportes</h1>
+    <div className="space-y-6 p-4 sm:p-8">
+      <div>
+        <PageTitle title="Reportes y Análisis" icon="reportes" />
+        <p className="text-muted-foreground mt-1">Visualiza métricas y descargas reportes</p>
+      </div>
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>

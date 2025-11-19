@@ -1,6 +1,7 @@
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
 import { Suspense } from 'react'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import ProduccionForm from './produccion-form'
 import ProduccionDiaLista from './produccion-dia-lista'
 import { obtenerProduccionDiaria } from '@/caracteristicas/produccion/acciones'
@@ -31,11 +32,11 @@ export default async function ProduccionPage() {
   }))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 sm:p-8">
+      <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
         <div>
-          <h1 className="text-3xl font-bold">Producción del Día</h1>
-          <p className="text-muted-foreground mt-2">
+          <PageTitle title="Producción del Día" icon="produccion" />
+          <p className="text-muted-foreground mt-1">
             Registra de forma simple lo que produjiste hoy
           </p>
         </div>

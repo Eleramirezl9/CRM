@@ -1,5 +1,6 @@
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import { obtenerInventarioGlobal, obtenerAlertasStockCritico } from '@/caracteristicas/inventario/acciones'
 import InventarioVista from './inventario-vista'
 import AlertasStock from './alertas-stock'
@@ -16,12 +17,10 @@ export default async function InventarioPage() {
   const { alertas = [] } = await obtenerAlertasStockCritico()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Inventario Global</h1>
-          <p className="text-muted-foreground mt-1">Control consolidado de stock en todas las sucursales</p>
-        </div>
+    <div className="space-y-6 p-4 sm:p-8">
+      <div>
+        <PageTitle title="Control de Inventario" icon="inventario" />
+        <p className="text-muted-foreground mt-1">Control consolidado de stock en todas las sucursales</p>
       </div>
 
       {alertas.length > 0 && <AlertasStock alertas={alertas} />}

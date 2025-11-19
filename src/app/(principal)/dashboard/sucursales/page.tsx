@@ -1,5 +1,6 @@
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import { obtenerSucursales } from '@/caracteristicas/sucursales/acciones'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
@@ -20,9 +21,9 @@ export default async function SucursalesPage() {
 
   if (!success) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-4 sm:p-8">
         <div>
-          <h1 className="text-3xl font-bold">Sucursales</h1>
+          <PageTitle title="Gestión de Sucursales" icon="sucursales" />
           <p className="text-muted-foreground mt-1">Gestiona todas las sucursales de la empresa</p>
         </div>
         <Card>
@@ -37,15 +38,15 @@ export default async function SucursalesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
         <div>
-          <h1 className="text-3xl font-bold">Sucursales</h1>
+          <PageTitle title="Gestión de Sucursales" icon="sucursales" />
           <p className="text-muted-foreground mt-1">Gestiona todas las sucursales de la empresa</p>
         </div>
         <Link href="/dashboard/sucursales/nueva">
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Nueva Sucursal
           </Button>

@@ -1,5 +1,6 @@
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import ProductosLista from './productos-lista'
 import { Button } from '@/compartido/componentes/ui/button'
@@ -15,11 +16,11 @@ export default async function ProductosPage() {
   const { productos } = await obtenerProductos()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Productos</h1>
-        <Link href="/dashboard/productos/nuevo">
-          <Button>+ Nuevo Producto</Button>
+    <div className="space-y-6 p-4 sm:p-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <PageTitle title="Gestión de Productos" icon="productos" />
+        <Link href="/dashboard/productos/nuevo" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">+ Nuevo Producto</Button>
         </Link>
       </div>
 

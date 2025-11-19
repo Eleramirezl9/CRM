@@ -2,6 +2,7 @@ import { obtenerEnvios, sugerirEnvios } from '@/caracteristicas/envios/acciones'
 import EnviosLista from './envios-lista'
 import SugerenciasEnvios from './sugerencias-envios'
 import { Button } from '@/compartido/componentes/ui/button'
+import { PageTitle } from '@/compartido/componentes/PageTitle'
 import Link from 'next/link'
 import { verificarPermiso, PERMISOS } from '@/compartido/lib/permisos'
 import { NoAutorizado } from '@/compartido/componentes/NoAutorizado'
@@ -17,14 +18,14 @@ export default async function EnviosPage() {
   const { sugerencias } = await sugerirEnvios()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 sm:p-8">
+      <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
         <div>
-          <h1 className="text-3xl font-bold">Envíos</h1>
+          <PageTitle title="Gestión de Envíos" icon="envios" />
           <p className="text-muted-foreground mt-1">Gestión de traslados entre sucursales</p>
         </div>
         <Link href="/dashboard/envios/nuevo">
-          <Button>+ Nuevo Envío</Button>
+          <Button className="w-full sm:w-auto">+ Nuevo Envío</Button>
         </Link>
       </div>
 
