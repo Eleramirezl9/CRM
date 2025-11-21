@@ -151,11 +151,11 @@ export default function RegistroDevolucion({ sucursalId, operacionId }: Registro
                 </SelectTrigger>
                 <SelectContent>
                   {isLoadingProductos ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Cargando productos...
                     </SelectItem>
                   ) : productos.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="empty" disabled>
                       No hay productos disponibles
                     </SelectItem>
                   ) : (

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import { Button } from '@/compartido/componentes/ui/button'
-import { CheckCircle2, Package, Circle, Sun, Moon, Send, Edit2 } from 'lucide-react'
+import { CheckCircle2, Package, Circle, Sun, Moon, Send, Edit2, User, Mail, Calendar, FileSignature } from 'lucide-react'
 import { getTurnoLabel, type Turno } from '@/compartido/lib/turnos'
 import { firmarProduccion, actualizarTurno } from '@/caracteristicas/produccion/acciones'
 import { useState } from 'react'
@@ -40,15 +40,71 @@ type Produccion = {
 
 type Props = {
   producciones: Produccion[]
+  usuario: {
+    nombre: string
+    correo: string
+  }
 }
 
-function ItemProduccion({ produccion }: { produccion: Produccion }) {
+// Función para formatear fecha UTC sin conversión de zona horaria
+function formatearFechaUTC(fecha: Date): string {
+  const dia = fecha.getUTCDate()
+  const mes = fecha.getUTCMonth() + 1
+  const anio = fecha.getUTCFullYear()
+  return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`
+}
+
+// Función para calcular la fecha según el turno (usando UTC para consistencia)
+function calcularFechaSegunTurno(turno: Turno): Date {
+  const ahora = new Date()
+  const hora = ahora.getHours()
+
+  // Crear fecha en UTC
+  const hoy = new Date(Date.UTC(
+    ahora.getFullYear(),
+    ahora.getMonth(),
+    ahora.getDate(),
+    0, 0, 0, 0
+  ))
+
+  if (turno === 'noche') {
+    // Turno noche: la producción es para el día siguiente
+    // Excepto si estamos en la madrugada (0:00 - 3:59), ya estamos en el día siguiente
+    if (hora >= 4) {
+      const manana = new Date(hoy)
+      manana.setUTCDate(manana.getUTCDate() + 1)
+      return manana
+    }
+    // Si hora < 4 (madrugada), ya estamos en el día del turno noche
+    return hoy
+  }
+  // Turno mañana: fecha es hoy
+  return hoy
+}
+
+function ItemProduccion({ produccion, usuario }: { produccion: Produccion, usuario: { nombre: string, correo: string } }) {
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [turnoEditando, setTurnoEditando] = useState(produccion.turno)
 
+  // Calcular la fecha que se mostrará según el turno seleccionado
+  const fechaMostrar = turnoEditando !== produccion.turno
+    ? calcularFechaSegunTurno(turnoEditando)
+    : new Date(produccion.fecha)
+
   const handleFirmar = async () => {
     setLoading(true)
+
+    // Si el turno fue cambiado, actualizarlo primero
+    if (turnoEditando !== produccion.turno) {
+      const updateResult = await actualizarTurno(produccion.id, turnoEditando)
+      if (!updateResult.success) {
+        setLoading(false)
+        alert(updateResult.error || 'Error al actualizar turno')
+        return
+      }
+    }
+
     const result = await firmarProduccion(produccion.id)
     setLoading(false)
 
@@ -121,10 +177,10 @@ function ItemProduccion({ produccion }: { produccion: Produccion }) {
         </div>
       )}
 
-      {!produccion.enviado && (
-        <div className="mt-3 flex gap-2">
+      {!produccion.enviado ? (
+        <div className="mt-3 space-y-3">
           {/* Selector de turno editable */}
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center gap-2">
             <Select value={turnoEditando} onValueChange={(v: Turno) => setTurnoEditando(v)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -153,12 +209,18 @@ function ItemProduccion({ produccion }: { produccion: Produccion }) {
           </div>
 
           {/* Botón de firma */}
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+          >
+            <FileSignature className="w-5 h-5 mr-2" />
+            FIRMAR Y ENVIAR A BODEGA
+          </Button>
+
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="default">
-                <Send className="w-3 h-3 mr-1" />
-                Firmar y Enviar
-              </Button>
+              <span className="hidden" />
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -182,23 +244,53 @@ function ItemProduccion({ produccion }: { produccion: Produccion }) {
 
                     <div className="text-muted-foreground">Turno:</div>
                     <div className="font-medium flex items-center gap-1">
-                      {produccion.turno === 'manana' ? (
+                      {turnoEditando === 'manana' ? (
                         <Sun className="w-3 h-3" />
                       ) : (
                         <Moon className="w-3 h-3" />
                       )}
-                      {getTurnoLabel(produccion.turno)}
+                      {getTurnoLabel(turnoEditando)}
                     </div>
 
                     <div className="text-muted-foreground">Fecha:</div>
                     <div className="font-medium">
-                      {new Date(produccion.fecha).toLocaleDateString()}
+                      {formatearFechaUTC(fechaMostrar)}
+                      {turnoEditando !== produccion.turno && (
+                        <span className="text-xs text-amber-600 ml-1">(nueva)</span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="text-xs text-muted-foreground text-center p-3 bg-muted rounded">
-                  Al firmar, esta producción será enviada a bodega y se registrará tu usuario como responsable.
+                {/* Información de quien firma */}
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <FileSignature className="w-4 h-4" />
+                    Tu Firma
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm bg-green-50 p-3 rounded border border-green-200">
+                    <div className="text-muted-foreground flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      Firmado por:
+                    </div>
+                    <div className="font-medium">{usuario.nombre}</div>
+
+                    <div className="text-muted-foreground flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      Correo:
+                    </div>
+                    <div className="font-medium text-xs">{usuario.correo}</div>
+
+                    <div className="text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Fecha y hora:
+                    </div>
+                    <div className="font-medium">{new Date().toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground text-center p-3 bg-amber-50 border border-amber-200 rounded">
+                  Al firmar, esta producción será enviada a bodega y tus datos quedarán registrados como responsable
                 </div>
               </div>
 
@@ -206,25 +298,27 @@ function ItemProduccion({ produccion }: { produccion: Produccion }) {
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleFirmar} disabled={loading}>
+                <Button onClick={handleFirmar} disabled={loading} className="bg-green-600 hover:bg-green-700">
                   {loading ? 'Firmando...' : 'Confirmar Firma'}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
-      )}
-
-      {produccion.enviado && produccion.fechaFirma && (
-        <div className="mt-3 text-xs text-muted-foreground border-t pt-2">
-          Firmado el <FechaFormateada fecha={produccion.fechaFirma} />
-        </div>
+      ) : (
+        produccion.fechaFirma && (
+          <div className="mt-3 text-xs text-muted-foreground border-t pt-2 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600" />
+            <span>Firmado y enviado a bodega el <FechaFormateada fecha={produccion.fechaFirma} /></span>
+          </div>
+        )
       )}
     </div>
   )
 }
 
-export default function ProduccionDiaLista({ producciones }: Props) {
+export default function ProduccionDiaLista({ producciones, usuario }: Props) {
+
   if (producciones.length === 0) {
     return (
       <Card>
@@ -271,7 +365,7 @@ export default function ProduccionDiaLista({ producciones }: Props) {
         {/* Lista de productos */}
         <div className="space-y-3">
           {producciones.map((produccion) => (
-            <ItemProduccion key={produccion.id} produccion={produccion} />
+            <ItemProduccion key={produccion.id} produccion={produccion} usuario={usuario} />
           ))}
         </div>
 

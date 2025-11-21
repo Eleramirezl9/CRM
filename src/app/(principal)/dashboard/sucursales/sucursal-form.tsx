@@ -180,20 +180,20 @@ export default function SucursalForm({ sucursal, onSuccess }: SucursalFormProps)
           <div className="space-y-2">
             <Label htmlFor="gerenteId">Gerente</Label>
             <Select
-              value={watch('gerenteId')}
-              onValueChange={(value) => setValue('gerenteId', value)}
+              value={watch('gerenteId') || 'none'}
+              onValueChange={(value) => setValue('gerenteId', value === 'none' ? '' : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sin gerente asignado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sin gerente asignado</SelectItem>
+                <SelectItem value="none">Sin gerente asignado</SelectItem>
                 {isLoadingGerentes ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="loading" disabled>
                     Cargando gerentes...
                   </SelectItem>
                 ) : gerentes.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="empty" disabled>
                     No hay gerentes disponibles
                   </SelectItem>
                 ) : (

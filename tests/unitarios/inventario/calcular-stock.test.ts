@@ -12,6 +12,25 @@ jest.mock('@/lib/prisma', () => ({
   },
 }))
 
+// Mock de sesión y permisos
+jest.mock('@/compartido/lib/dal', () => ({
+  getCurrentSession: jest.fn(() => Promise.resolve({
+    user: { id: '1', rol: 'administrador' }
+  })),
+  verifySession: jest.fn(() => Promise.resolve({
+    user: { id: '1', rol: 'administrador' }
+  })),
+}))
+
+jest.mock('@/compartido/lib/permisos', () => ({
+  checkPermiso: jest.fn(() => Promise.resolve({ authorized: true })),
+  verificarPermiso: jest.fn(() => Promise.resolve(true)),
+  PERMISOS: {
+    INVENTARIO_VER: 'inventario:ver',
+    INVENTARIO_EDITAR: 'inventario:editar',
+  },
+}))
+
 import { obtenerInventarioGlobal } from '@/caracteristicas/inventario/acciones'
 import { prisma } from '@/lib/prisma'
 import { INVENTARIO_PRUEBA, PRODUCTO_PRUEBA, SUCURSAL_PRUEBA } from '../../setup/mocks/datos-prueba'

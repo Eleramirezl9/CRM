@@ -55,6 +55,10 @@ export const PERMISOS = {
   PRODUCCION_EDITAR: 'produccion.editar',
   PRODUCCION_ELIMINAR: 'produccion.eliminar',
 
+  // Bodega
+  BODEGA_VER: 'bodega.ver',
+  BODEGA_CONFIRMAR: 'bodega.confirmar',
+
   // Sucursales
   SUCURSALES_VER: 'sucursales.ver',
   SUCURSALES_CREAR: 'sucursales.crear',

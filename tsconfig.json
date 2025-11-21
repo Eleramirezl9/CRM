@@ -41,7 +41,10 @@
     "incremental": true,
     "plugins": [
       {
-        "name": "next"
+        "name": "next",
+        "experimental": {
+          "typedRoutes": false
+        }
       }
     ]
   },

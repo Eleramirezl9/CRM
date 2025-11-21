@@ -4,11 +4,13 @@ import { Suspense } from 'react'
 import { PageTitle } from '@/compartido/componentes/PageTitle'
 import ProduccionForm from './produccion-form'
 import ProduccionDiaLista from './produccion-dia-lista'
-import { obtenerProduccionDiaria } from '@/caracteristicas/produccion/acciones'
+import BitacoraProduccion from './bitacora-produccion'
+import { obtenerProduccionDiaria, obtenerHistorialProduccion } from '@/caracteristicas/produccion/acciones'
 import PlantillasSelector from '@/caracteristicas/plantillas-produccion/componentes/PlantillasSelector'
 import { Button } from '@/compartido/componentes/ui/button'
 import Link from 'next/link'
 import { LayoutTemplate } from 'lucide-react'
+import { verifySession } from '@/compartido/lib/dal'
 
 export const metadata = {
   title: 'Producción Diaria',
@@ -22,14 +24,52 @@ export default async function ProduccionPage() {
     return <NoAutorizado />
   }
 
+  const session = await verifySession()
   const hoy = new Date()
+
+  // Obtener producción de hoy (ayer, hoy, mañana para turnos)
   const result = await obtenerProduccionDiaria(hoy)
 
-  // Asegurar que el tipo turno sea correcto
-  const producciones = (result.producciones || []).map(p => ({
+  // Obtener historial completo para la bitácora
+  const historialResult = await obtenerHistorialProduccion()
+
+  // Filtrar solo producción de hoy para la lista principal
+  const hoyUTC = new Date(Date.UTC(
+    hoy.getFullYear(),
+    hoy.getMonth(),
+    hoy.getDate(),
+    0, 0, 0, 0
+  ))
+
+  // Mañana UTC (para turno noche que registra producción del día siguiente)
+  const mananaUTC = new Date(hoyUTC)
+  mananaUTC.setUTCDate(mananaUTC.getUTCDate() + 1)
+
+  // Filtrar solo las producciones de hoy y mañana (para turno noche actual)
+  const produccionesHoy = (result.producciones || []).filter(p => {
+    const fechaProd = new Date(p.fecha)
+    const fechaProdUTC = new Date(Date.UTC(
+      fechaProd.getUTCFullYear(),
+      fechaProd.getUTCMonth(),
+      fechaProd.getUTCDate(),
+      0, 0, 0, 0
+    ))
+    return fechaProdUTC.getTime() === hoyUTC.getTime() || fechaProdUTC.getTime() === mananaUTC.getTime()
+  }).map(p => ({
     ...p,
-    turno: p.turno as any // TypeScript cast para evitar error de tipo en serialización
+    turno: p.turno as any
   }))
+
+  // Historial completo para bitácora
+  const historialCompleto = (historialResult.producciones || []).map(p => ({
+    ...p,
+    turno: p.turno as any
+  }))
+
+  const usuario = {
+    nombre: (session.user as any).nombre || 'Usuario',
+    correo: (session.user as any).correo || ''
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-8">
@@ -52,11 +92,17 @@ export default async function ProduccionPage() {
       <PlantillasSelector />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ProduccionForm />
+        <div className="space-y-6">
+          <ProduccionForm />
+        </div>
 
-        <div>
+        <div className="space-y-6">
           <Suspense fallback={<div>Cargando...</div>}>
-            <ProduccionDiaLista producciones={producciones} />
+            <ProduccionDiaLista producciones={produccionesHoy} usuario={usuario} />
+          </Suspense>
+
+          <Suspense fallback={<div>Cargando bitácora...</div>}>
+            <BitacoraProduccion producciones={historialCompleto} />
           </Suspense>
         </div>
       </div>

@@ -65,6 +65,9 @@ async function main() {
     { codigo: 'produccion.ver', nombre: 'Ver Producción', modulo: 'produccion', descripcion: 'Permite ver producción' },
     { codigo: 'produccion.crear', nombre: 'Crear Producción', modulo: 'produccion', descripcion: 'Permite crear producción' },
     { codigo: 'produccion.editar', nombre: 'Editar Producción', modulo: 'produccion', descripcion: 'Permite editar producción' },
+    // Bodega
+    { codigo: 'bodega.ver', nombre: 'Ver Bodega', modulo: 'bodega', descripcion: 'Permite ver productos pendientes y historial de bodega' },
+    { codigo: 'bodega.confirmar', nombre: 'Confirmar en Bodega', modulo: 'bodega', descripcion: 'Permite confirmar recepción de productos en bodega' },
     // Sucursales
     { codigo: 'sucursales.ver', nombre: 'Ver Sucursales', modulo: 'sucursales', descripcion: 'Permite ver sucursales' },
     { codigo: 'sucursales.crear', nombre: 'Crear Sucursales', modulo: 'sucursales', descripcion: 'Permite crear sucursales' },
@@ -126,8 +129,9 @@ async function main() {
     })
   }
 
-  // Bodega: inventario, envíos, productos (solo ver)
+  // Bodega: bodega completa, inventario, envíos, productos (solo ver)
   const permisosBodega = permisos.filter(p =>
+    p.modulo === 'bodega' ||
     p.modulo === 'inventario' ||
     p.modulo === 'envios' ||
     (p.modulo === 'productos' && p.codigo === 'productos.ver')

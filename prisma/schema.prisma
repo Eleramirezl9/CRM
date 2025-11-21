@@ -79,6 +79,8 @@ model Usuario {
   ventas               Venta[]
   auditLogs            AuditLog[]
   permisosIndividuales UserPermission[]
+  produccionesFirmadas      ProduccionDiaria[] @relation("FirmaProduccion")
+  produccionesConfirmadas   ProduccionDiaria[] @relation("ConfirmacionBodega")
 
   @@index([correo])
   @@index([activo])
@@ -300,7 +302,9 @@ model ProduccionDiaria {
   createdAt             DateTime  @default(now()) @map("creado_at")
   updatedAt             DateTime  @updatedAt @map("actualizado_at")
 
-  producto Producto @relation(fields: [productoId], references: [id])
+  producto             Producto @relation(fields: [productoId], references: [id])
+  usuarioFirma         Usuario? @relation("FirmaProduccion", fields: [firmadoPor], references: [id])
+  usuarioConfirmacion  Usuario? @relation("ConfirmacionBodega", fields: [confirmadoPor], references: [id])
 
   @@unique([fecha, productoId, turno])
   @@map("produccion_diaria")

@@ -33,11 +33,31 @@ export async function registrarProduccion(data: {
     // Calcular total de unidades
     const totalUnidades = data.cantidadContenedores * data.unidadesPorContenedor
 
-    // Crear o actualizar producción
-    const fechaProduccion = data.fecha || new Date()
-
     // Detectar turno automáticamente si no se proporciona
-    const turno = data.turno || detectarTurno(fechaProduccion)
+    const ahora = new Date()
+    const turno = data.turno || detectarTurno(ahora)
+
+    // Calcular fecha de producción según turno
+    let fechaProduccion = data.fecha ? new Date(data.fecha) : new Date()
+
+    if (!data.fecha) {
+      const hora = ahora.getHours()
+
+      if (turno === 'noche') {
+        // Turno noche: 5PM-3AM
+        // Si es entre 5PM y 11:59PM (17-23), la fecha es mañana
+        // Si es entre 12AM y 3AM (0-3), la fecha es hoy (ya pasó la medianoche)
+        if (hora >= 17) {
+          // Es noche del día actual, producción para mañana
+          fechaProduccion.setDate(fechaProduccion.getDate() + 1)
+        }
+        // Si hora < 4 (madrugada), la fecha ya es correcta (hoy)
+      }
+      // Turno mañana (4AM-4PM): fecha es hoy, no hay cambio
+    }
+
+    // Normalizar a solo fecha (sin hora)
+    fechaProduccion.setHours(0, 0, 0, 0)
 
     const produccion = await prisma.produccionDiaria.upsert({
       where: {
@@ -110,19 +130,50 @@ export async function registrarProduccion(data: {
 // Obtener producción diaria
 export async function obtenerProduccionDiaria(fecha?: Date) {
   try {
-    const fechaConsulta = fecha || new Date()
+    const ahora = new Date()
+
+    // Usar UTC para consistencia con las fechas guardadas
+    const hoy = new Date(Date.UTC(
+      ahora.getFullYear(),
+      ahora.getMonth(),
+      ahora.getDate(),
+      0, 0, 0, 0
+    ))
+
+    // Ayer
+    const ayer = new Date(hoy)
+    ayer.setUTCDate(ayer.getUTCDate() - 1)
+
+    // Mañana
+    const manana = new Date(hoy)
+    manana.setUTCDate(manana.getUTCDate() + 1)
+
+    // Mostrar producciones de ayer (pendientes), hoy y mañana (para turno noche)
+    const fechasAMostrar = [ayer, hoy, manana]
+
+    console.log('Buscando producciones para fechas:', fechasAMostrar.map(f => f.toISOString()))
 
     const producciones = await prisma.produccionDiaria.findMany({
       where: {
-        fecha: fechaConsulta,
+        fecha: {
+          in: fechasAMostrar
+        },
       },
       include: {
         producto: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { fecha: 'desc' },
+        { turno: 'asc' }, // mañana primero, luego noche
+        { createdAt: 'desc' },
+      ],
     })
+
+    console.log('Producciones encontradas:', producciones.map(p => ({
+      nombre: p.producto.nombre,
+      fecha: p.fecha,
+      turno: p.turno
+    })))
 
     return { success: true, producciones }
   } catch (error) {
@@ -139,6 +190,14 @@ export async function obtenerHistorialProduccion(filtros?: {
   enviado?: boolean
 }) {
   try {
+    // Verificar sesión y permisos
+    await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCCION_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para ver el historial', producciones: [] }
+    }
+
     const where: any = {}
 
     if (filtros?.fechaInicio || filtros?.fechaFin) {
@@ -243,18 +302,54 @@ export async function obtenerProductosDisponibles() {
 // Obtener productos firmados esperando confirmación de bodega
 export async function obtenerProductosFirmados() {
   try {
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
+    // Verificar permisos de bodega
+    const permisoCheck = await checkPermiso(PERMISOS.BODEGA_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: 'Sin permisos para ver productos de bodega', productos: [] }
+    }
+
+    const ahora = new Date()
+
+    // Usar UTC para consistencia con las fechas guardadas
+    const hoy = new Date(Date.UTC(
+      ahora.getFullYear(),
+      ahora.getMonth(),
+      ahora.getDate(),
+      0, 0, 0, 0
+    ))
+
+    // Ayer
+    const ayer = new Date(hoy)
+    ayer.setUTCDate(ayer.getUTCDate() - 1)
+
+    // Mañana
+    const manana = new Date(hoy)
+    manana.setUTCDate(manana.getUTCDate() + 1)
+
+    // Buscar producciones de ayer, hoy y mañana
+    const fechasABuscar = [ayer, hoy, manana]
 
     const producciones = await prisma.produccionDiaria.findMany({
       where: {
-        fecha: hoy,
+        fecha: {
+          in: fechasABuscar
+        },
         enviado: true, // Productos firmados
         confirmadoPor: null, // Pero no confirmados por bodega
       },
       include: {
         producto: true,
+        usuarioFirma: {
+          select: {
+            nombre: true,
+            correo: true,
+          }
+        },
       },
+      orderBy: [
+        { fecha: 'desc' },
+        { turno: 'asc' },
+      ],
     })
 
     const firmados = producciones.map(p => ({
@@ -268,12 +363,72 @@ export async function obtenerProductosFirmados() {
       turno: p.turno as Turno,
       firmadoPor: p.firmadoPor,
       fechaFirma: p.fechaFirma,
+      usuarioFirma: p.usuarioFirma,
     }))
 
     return { success: true, productos: firmados }
   } catch (error) {
     console.error('Error al obtener productos firmados:', error)
     return { success: false, error: 'Error al obtener productos', productos: [] }
+  }
+}
+
+// Obtener historial de recepciones confirmadas en bodega
+export async function obtenerHistorialBodega() {
+  try {
+    // Verificar permisos de bodega
+    const permisoCheck = await checkPermiso(PERMISOS.BODEGA_VER)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: 'Sin permisos para ver historial de bodega', historial: [] }
+    }
+
+    const producciones = await prisma.produccionDiaria.findMany({
+      where: {
+        confirmadoPor: { not: null }, // Solo productos confirmados
+      },
+      include: {
+        producto: true,
+        usuarioFirma: {
+          select: {
+            nombre: true,
+            correo: true,
+          }
+        },
+        usuarioConfirmacion: {
+          select: {
+            nombre: true,
+            correo: true,
+          }
+        },
+      },
+      orderBy: {
+        fechaConfirmacion: 'desc',
+      },
+      take: 50, // Últimos 50 registros
+    })
+
+    const historial = producciones.map(p => ({
+      id: p.id,
+      nombre: p.producto.nombre,
+      totalUnidades: p.totalUnidades,
+      fecha: p.fecha,
+      turno: p.turno as Turno,
+      firmadoPor: p.usuarioFirma,
+      fechaFirma: p.fechaFirma,
+      confirmadoPor: p.usuarioConfirmacion,
+      fechaConfirmacion: p.fechaConfirmacion,
+    }))
+
+    console.log('Historial bodega:', historial.map(h => ({
+      nombre: h.nombre,
+      firmadoPor: h.firmadoPor,
+      confirmadoPor: h.confirmadoPor
+    })))
+
+    return { success: true, historial }
+  } catch (error) {
+    console.error('Error al obtener historial de bodega:', error)
+    return { success: false, error: 'Error al obtener historial', historial: [] }
   }
 }
 
@@ -305,31 +460,44 @@ export async function firmarProduccion(id: string) {
       return { success: false, error: 'Producción no encontrada' }
     }
 
-    // Validar que sea del día actual o futuro (no permitir firmar producciones pasadas)
+    // Validar que sea del día actual o día siguiente (para turno noche)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
+
+    const manana = new Date(hoy)
+    manana.setDate(manana.getDate() + 1)
+
     const fechaProduccion = new Date(produccionExistente.fecha)
     fechaProduccion.setHours(0, 0, 0, 0)
 
-    if (fechaProduccion < hoy) {
+    // Permitir firmar: hoy, mañana (para turno noche), o ayer (por si acaso)
+    const ayer = new Date(hoy)
+    ayer.setDate(ayer.getDate() - 1)
+
+    const esValida = fechaProduccion >= ayer && fechaProduccion <= manana
+
+    if (!esValida) {
       await registrarAuditoria({
         usuarioId: parseInt(session.user.id),
         accion: 'FIRMAR_PRODUCCION',
         entidad: 'ProduccionDiaria',
         entidadId: id,
         detalles: {
-          error: 'No se pueden firmar producciones de días anteriores',
+          error: 'No se pueden firmar producciones fuera del rango permitido',
           fechaProduccion: produccionExistente.fecha,
+          hoy: hoy,
         },
         exitoso: false,
       })
-      return { success: false, error: 'No se pueden firmar producciones de días anteriores' }
+      return { success: false, error: 'Solo se pueden firmar producciones de hoy, ayer o mañana (turno noche)' }
     }
 
     // Validar que no esté ya firmada
     if (produccionExistente.enviado) {
       return { success: false, error: 'Esta producción ya fue firmada anteriormente' }
     }
+
+    console.log('Firmando producción con usuario ID:', session.user.id, 'parseado:', parseInt(session.user.id))
 
     const produccion = await prisma.produccionDiaria.update({
       where: { id },
@@ -342,6 +510,8 @@ export async function firmarProduccion(id: string) {
         producto: true,
       },
     })
+
+    console.log('Producción firmada, firmadoPor guardado:', produccion.firmadoPor)
 
     // Registrar auditoría
     await registrarAuditoria({
@@ -360,6 +530,7 @@ export async function firmarProduccion(id: string) {
 
     revalidatePath('/dashboard/produccion')
     revalidatePath('/dashboard/produccion/disponibles')
+    revalidatePath('/dashboard/bodega')
     return { success: true, produccion }
   } catch (error) {
     console.error('Error al firmar producción:', error)
@@ -383,15 +554,15 @@ export async function firmarProduccion(id: string) {
   }
 }
 
-// Confirmar recepción en bodega
-export async function confirmarRecepcionBodega(id: string) {
+// Confirmar recepción en bodega y registrar en inventario
+export async function confirmarRecepcionBodega(id: string, sucursalId?: string) {
   try {
     const session = await verifySession()
 
     // Verificar permisos de bodega
-    const permisoCheck = await checkPermiso(PERMISOS.PRODUCCION_EDITAR)
+    const permisoCheck = await checkPermiso(PERMISOS.BODEGA_CONFIRMAR)
     if (!permisoCheck.authorized) {
-      return { success: false, error: permisoCheck.error || 'No tienes permisos para confirmar recepción' }
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para confirmar recepción en bodega' }
     }
 
     // Validar que la producción existe y está firmada
@@ -441,25 +612,97 @@ export async function confirmarRecepcionBodega(id: string) {
       },
     })
 
+    // Registrar en inventario automáticamente
+    let inventarioActualizado = null
+    if (sucursalId) {
+      try {
+        // Buscar o crear inventario para este producto en la sucursal
+        let inventario = await prisma.inventario.findUnique({
+          where: {
+            sucursalId_productoId: {
+              sucursalId,
+              productoId: produccion.productoId,
+            },
+          },
+        })
+
+        if (!inventario) {
+          // Crear inventario si no existe
+          inventario = await prisma.inventario.create({
+            data: {
+              sucursalId,
+              productoId: produccion.productoId,
+              cantidadActual: 0,
+              stockMinimo: 10, // valor por defecto
+            },
+          })
+        }
+
+        // Actualizar cantidad y registrar movimiento
+        inventarioActualizado = await prisma.$transaction(async (tx) => {
+          const invActualizado = await tx.inventario.update({
+            where: { id: inventario!.id },
+            data: {
+              cantidadActual: {
+                increment: produccion.totalUnidades,
+              },
+            },
+          })
+
+          // Registrar movimiento de entrada
+          await tx.movimientoInventario.create({
+            data: {
+              inventarioId: inventario!.id,
+              productoId: produccion.productoId,
+              tipo: 'entrada',
+              cantidad: produccion.totalUnidades,
+              motivo: `Entrada desde producción - Turno ${produccion.turno === 'manana' ? 'Mañana' : 'Noche'} - ${new Date(produccion.fecha).toLocaleDateString()}`,
+              creadorId: parseInt(session.user.id),
+            },
+          })
+
+          return invActualizado
+        })
+
+        console.log('Inventario actualizado:', {
+          sucursalId,
+          productoId: produccion.productoId,
+          cantidadAgregada: produccion.totalUnidades,
+          nuevaCantidad: inventarioActualizado.cantidadActual,
+        })
+      } catch (invError) {
+        console.error('Error al actualizar inventario:', invError)
+        // No fallar la confirmación por error de inventario
+      }
+    }
+
     // Registrar auditoría
-    await registrarAuditoria({
-      usuarioId: parseInt(session.user.id),
-      accion: 'CONFIRMAR_PRODUCCION_BODEGA',
-      entidad: 'ProduccionDiaria',
-      entidadId: id,
-      detalles: {
-        productoId: produccion.productoId,
-        productoNombre: produccion.producto.nombre,
-        turno: produccion.turno,
-        totalUnidades: produccion.totalUnidades,
-        fecha: produccion.fecha,
-        firmadoPor: produccion.firmadoPor,
-      },
-    })
+    try {
+      await registrarAuditoria({
+        usuarioId: parseInt(session.user.id),
+        accion: 'CONFIRMAR_PRODUCCION_BODEGA',
+        entidad: 'ProduccionDiaria',
+        entidadId: id,
+        detalles: {
+          productoId: produccion.productoId,
+          productoNombre: produccion.producto.nombre,
+          turno: produccion.turno,
+          totalUnidades: produccion.totalUnidades,
+          fecha: produccion.fecha,
+          firmadoPor: produccion.firmadoPor,
+          sucursalId,
+          inventarioActualizado: inventarioActualizado ? true : false,
+        },
+      })
+    } catch (auditError) {
+      console.error('Error al registrar auditoría:', auditError)
+    }
 
     revalidatePath('/dashboard/produccion')
     revalidatePath('/dashboard/produccion/disponibles')
-    return { success: true, produccion }
+    revalidatePath('/dashboard/bodega')
+    revalidatePath('/dashboard/inventario')
+    return { success: true, produccion, inventarioActualizado }
   } catch (error) {
     console.error('Error al confirmar recepción:', error)
 
@@ -525,28 +768,94 @@ export async function actualizarTurno(id: string, turno: Turno) {
 
     const turnoAnterior = produccionExistente.turno
 
+    // Recalcular fecha según el nuevo turno
+    const ahora = new Date()
+    const hora = ahora.getHours()
+
+    // Crear fecha UTC para evitar problemas de zona horaria
+    const hoyUTC = new Date(Date.UTC(
+      ahora.getFullYear(),
+      ahora.getMonth(),
+      ahora.getDate(),
+      0, 0, 0, 0
+    ))
+    let nuevaFecha = new Date(hoyUTC)
+
+    if (turno === 'noche') {
+      // Turno noche: la producción es para el día siguiente
+      // Siempre suma 1 día excepto en madrugada (0-3AM) que ya es el día siguiente
+      if (hora >= 4) {
+        // Entre 4AM y 11:59PM: la noche produce para mañana
+        nuevaFecha.setUTCDate(nuevaFecha.getUTCDate() + 1)
+      }
+      // Si hora < 4 (madrugada), ya estamos en el día de la producción nocturna
+    }
+    // Turno mañana: fecha es hoy (nuevaFecha ya está en hoy)
+
+    console.log('Actualizando turno:', {
+      id,
+      turnoAnterior,
+      turnoNuevo: turno,
+      fechaAnterior: produccionExistente.fecha,
+      nuevaFecha,
+      horaActual: hora
+    })
+
+    // Verificar si ya existe una producción con la misma fecha/producto/turno
+    const existeConflicto = await prisma.produccionDiaria.findFirst({
+      where: {
+        fecha: nuevaFecha,
+        productoId: produccionExistente.productoId,
+        turno,
+        id: { not: id } // Excluir la producción actual
+      }
+    })
+
+    if (existeConflicto) {
+      return {
+        success: false,
+        error: `Ya existe una producción de ${produccionExistente.producto.nombre} para el turno ${turno === 'manana' ? 'mañana' : 'noche'} del ${nuevaFecha.toLocaleDateString()}`
+      }
+    }
+
     const produccion = await prisma.produccionDiaria.update({
       where: { id },
-      data: { turno },
+      data: {
+        turno,
+        fecha: nuevaFecha
+      },
       include: {
         producto: true,
       },
     })
 
-    // Registrar auditoría
-    await registrarAuditoria({
-      usuarioId: parseInt(session.user.id),
-      accion: 'UPDATE_TURNO_PRODUCCION',
-      entidad: 'ProduccionDiaria',
-      entidadId: id,
-      detalles: {
-        productoId: produccion.productoId,
-        productoNombre: produccion.producto.nombre,
-        turnoAnterior,
-        turnoNuevo: turno,
-        fecha: produccion.fecha,
-      },
+    console.log('Producción actualizada:', {
+      id: produccion.id,
+      turno: produccion.turno,
+      fecha: produccion.fecha,
+      producto: produccion.producto.nombre
     })
+
+    // Registrar auditoría (no bloquear si falla)
+    try {
+      await registrarAuditoria({
+        usuarioId: parseInt(session.user.id),
+        accion: 'UPDATE_TURNO_PRODUCCION',
+        entidad: 'ProduccionDiaria',
+        entidadId: id,
+        detalles: {
+          productoId: produccion.productoId,
+          productoNombre: produccion.producto.nombre,
+          turnoAnterior,
+          turnoNuevo: turno,
+          fechaAnterior: produccionExistente.fecha,
+          fechaNueva: nuevaFecha,
+        },
+      })
+    } catch (auditError) {
+      console.error('Error al registrar auditoría:', auditError)
+      // No bloquear la operación por errores de auditoría
+    }
 
     revalidatePath('/dashboard/produccion')
     return { success: true, produccion }

@@ -99,11 +99,11 @@ export async function obtenerInventarioPorSucursal(sucursalId: string) {
 
 // Registrar movimiento de inventario (entrada o salida)
 export async function registrarMovimiento(data: {
-  inventarioId: number
+  productoId: string
+  sucursalId: string
   tipo: 'entrada' | 'salida'
   cantidad: number
   motivo?: string
-  creadorId?: number
 }) {
   // ✅ Verificación de seguridad
   const session = await getCurrentSession()
@@ -117,14 +117,28 @@ export async function registrarMovimiento(data: {
   }
 
   try {
-    // Obtener inventario actual
-    const inventario = await prisma.inventario.findUnique({
-      where: { id: data.inventarioId },
+    // Buscar o crear inventario
+    let inventario = await prisma.inventario.findUnique({
+      where: {
+        sucursalId_productoId: {
+          sucursalId: data.sucursalId,
+          productoId: data.productoId,
+        },
+      },
       include: { producto: true, sucursal: true },
     })
-    
+
     if (!inventario) {
-      return { success: false, error: 'Inventario no encontrado' }
+      // Crear inventario si no existe
+      inventario = await prisma.inventario.create({
+        data: {
+          sucursalId: data.sucursalId,
+          productoId: data.productoId,
+          cantidadActual: 0,
+          stockMinimo: 10,
+        },
+        include: { producto: true, sucursal: true },
+      })
     }
     
     const stockAnterior = inventario.cantidadActual
@@ -140,22 +154,22 @@ export async function registrarMovimiento(data: {
     const resultado = await prisma.$transaction(async (tx) => {
       // Actualizar cantidad
       const invActualizado = await tx.inventario.update({
-        where: { id: data.inventarioId },
+        where: { id: inventario.id },
         data: { cantidadActual: stockNuevo },
       })
-      
+
       // Registrar movimiento
       const movimiento = await tx.movimientoInventario.create({
         data: {
-          inventarioId: data.inventarioId,
+          inventarioId: inventario.id,
           productoId: inventario.productoId,
           tipo: data.tipo,
           cantidad: data.cantidad,
           motivo: data.motivo,
-          creadorId: data.creadorId,
+          creadorId: parseInt(session.user.id),
         },
       })
-      
+
       return { inventario: invActualizado, movimiento }
     })
     
@@ -171,45 +185,6 @@ export async function registrarMovimiento(data: {
   } catch (error) {
     console.error('Error al registrar movimiento:', error)
     return { success: false, error: 'Error al registrar movimiento' }
-  }
-}
-
-// Obtener movimientos recientes
-export async function obtenerMovimientosRecientes(limit = 50) {
-  // ✅ Verificación de seguridad
-  const session = await getCurrentSession()
-  if (!session) {
-    return { success: false, error: 'No autorizado', movimientos: [] }
-  }
-
-  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
-  if (!authCheck.authorized) {
-    return { success: false, error: authCheck.error || 'No tienes permisos para ver movimientos de inventario', movimientos: [] }
-  }
-
-  try {
-    const movimientos = await prisma.movimientoInventario.findMany({
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        producto: true,
-        inventario: {
-          include: {
-            sucursal: true,
-          },
-        },
-        creador: {
-          select: {
-            nombre: true,
-          },
-        },
-      },
-    })
-    
-    return { success: true, movimientos }
-  } catch (error) {
-    console.error('Error al obtener movimientos:', error)
-    return { success: false, error: 'Error al obtener movimientos', movimientos: [] }
   }
 }
 
@@ -310,12 +285,104 @@ export async function obtenerSucursales() {
 
   try {
     const sucursales = await prisma.sucursal.findMany({
+      select: {
+        id: true,
+        nombre: true,
+      },
       orderBy: { nombre: 'asc' },
     })
-    
+
     return { success: true, sucursales }
   } catch (error) {
     console.error('Error al obtener sucursales:', error)
     return { success: false, error: 'Error al obtener sucursales', sucursales: [] }
+  }
+}
+
+// Obtener movimientos recientes agrupados por día
+export async function obtenerMovimientosRecientes(dias: number = 7) {
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', movimientos: [], estadisticas: null }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos', movimientos: [], estadisticas: null }
+  }
+
+  try {
+    const fechaInicio = new Date()
+    fechaInicio.setDate(fechaInicio.getDate() - dias)
+    fechaInicio.setHours(0, 0, 0, 0)
+
+    const movimientos = await prisma.movimientoInventario.findMany({
+      where: {
+        creado_at: {
+          gte: fechaInicio,
+        },
+      },
+      include: {
+        producto: {
+          select: {
+            id: true,
+            nombre: true,
+            sku: true,
+          },
+        },
+        inventario: {
+          include: {
+            sucursal: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
+          },
+        },
+        creador: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+      orderBy: {
+        creado_at: 'desc',
+      },
+    })
+
+    // Calcular estadísticas
+    const totalEntradas = movimientos
+      .filter(m => m.tipo === 'entrada')
+      .reduce((sum, m) => sum + m.cantidad, 0)
+
+    const totalSalidas = movimientos
+      .filter(m => m.tipo === 'salida')
+      .reduce((sum, m) => sum + m.cantidad, 0)
+
+    const estadisticas = {
+      totalMovimientos: movimientos.length,
+      totalEntradas,
+      totalSalidas,
+      productosUnicos: new Set(movimientos.map(m => m.productoId)).size,
+    }
+
+    // Serializar fechas para evitar problemas con Client Components
+    const movimientosSerializados = movimientos.map(m => ({
+      id: m.id,
+      tipo: m.tipo,
+      cantidad: m.cantidad,
+      motivo: m.motivo,
+      creado_at: m.creado_at.toISOString(),
+      producto: m.producto,
+      sucursal: m.inventario.sucursal,
+      creador: m.creador,
+    }))
+
+    return { success: true, movimientos: movimientosSerializados, estadisticas }
+  } catch (error) {
+    console.error('Error al obtener movimientos:', error)
+    return { success: false, error: 'Error al obtener movimientos', movimientos: [], estadisticas: null }
   }
 }

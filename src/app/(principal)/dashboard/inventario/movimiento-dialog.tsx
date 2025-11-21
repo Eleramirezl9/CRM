@@ -50,15 +50,25 @@ export default function MovimientoDialog({
   
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.sucursalId) {
+      alert('Selecciona una sucursal')
+      return
+    }
+
+    if (formData.cantidad <= 0) {
+      alert('La cantidad debe ser mayor a 0')
+      return
+    }
+
     setLoading(true)
 
-    // Buscar inventarioId basado en sucursal y producto
-    // Por simplicidad, asumimos que existe
     const result = await registrarMovimiento({
-      inventarioId: 1, // Esto debería obtenerse dinámicamente
+      productoId: producto.producto.id,
+      sucursalId: formData.sucursalId,
       tipo: formData.tipo,
       cantidad: formData.cantidad,
-      motivo: formData.motivo,
+      motivo: formData.motivo || undefined,
     })
 
     setLoading(false)
@@ -75,7 +85,7 @@ export default function MovimientoDialog({
     } else {
       alert(result.error)
     }
-  }, [formData, onOpenChange, router])
+  }, [formData, producto.producto.id, onOpenChange, router])
   
   if (confirmacion) {
     return (

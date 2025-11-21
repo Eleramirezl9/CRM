@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Warehouse,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet'
 import { Button } from '../ui/button'
@@ -36,6 +37,7 @@ const iconMap = {
   ventas: DollarSign,
   sucursales: Building2,
   produccion: Factory,
+  bodega: Warehouse,
   reportes: TrendingUp,
   store: Store,
   logout: LogOut,
@@ -52,6 +54,7 @@ const allLinks = [
   { href: '/dashboard/ventas', label: 'Ventas', icon: iconMap.ventas, permission: 'ventas.ver' },
   { href: '/dashboard/sucursales', label: 'Sucursales', icon: iconMap.sucursales, permission: 'sucursales.ver' },
   { href: '/dashboard/produccion', label: 'Producción', icon: iconMap.produccion, permission: 'produccion.ver' },
+  { href: '/dashboard/bodega', label: 'Bodega', icon: iconMap.bodega, permission: 'bodega.ver' },
   { href: '/dashboard/reportes', label: 'Reportes', icon: iconMap.reportes, permission: 'reportes.ver' },
 ]
 
@@ -67,6 +70,7 @@ type NavLink = {
 const linksByRole: Record<string, NavLink[]> = {
   administrador: allLinks,
   bodega: [
+    { href: '/dashboard/bodega', label: 'Recepción', icon: iconMap.bodega, permission: 'bodega.ver' },
     { href: '/dashboard/inventario', label: 'Inventario', icon: iconMap.inventario, permission: 'inventario.ver' },
     { href: '/dashboard/envios', label: 'Envíos', icon: iconMap.envios, permission: 'envios.ver' },
   ],
