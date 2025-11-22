@@ -318,7 +318,7 @@ export async function obtenerMovimientosRecientes(dias: number = 7) {
 
     const movimientos = await prisma.movimientoInventario.findMany({
       where: {
-        creado_at: {
+        createdAt: {
           gte: fechaInicio,
         },
       },
@@ -348,7 +348,7 @@ export async function obtenerMovimientosRecientes(dias: number = 7) {
         },
       },
       orderBy: {
-        creado_at: 'desc',
+        createdAt: 'desc',
       },
     })
 
@@ -374,7 +374,7 @@ export async function obtenerMovimientosRecientes(dias: number = 7) {
       tipo: m.tipo,
       cantidad: m.cantidad,
       motivo: m.motivo,
-      creado_at: m.creado_at.toISOString(),
+      creado_at: m.createdAt.toISOString(),
       producto: m.producto,
       sucursal: m.inventario.sucursal,
       creador: m.creador,
