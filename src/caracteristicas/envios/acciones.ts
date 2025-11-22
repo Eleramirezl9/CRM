@@ -276,16 +276,23 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
   }
 
   try {
-    const estadosValidos = ['pendiente', 'en_preparacion', 'en_transito', 'entregado']
+    // Estados que se pueden cambiar desde bodega
+    // "entregado" solo se puede cambiar desde confirmarRecepcionEnvio (sucursal)
+    const estadosValidos = ['pendiente', 'en_preparacion', 'en_transito']
     if (!estadosValidos.includes(nuevoEstado)) {
-      return { success: false, error: 'Estado inválido' }
+      return {
+        success: false,
+        error: nuevoEstado === 'entregado'
+          ? 'El estado "entregado" solo puede ser asignado por la sucursal al confirmar recepción'
+          : 'Estado inválido'
+      }
     }
-    
+
     const envio = await prisma.envio.findUnique({
       where: { id: envioId },
       include: { items: true },
     })
-    
+
     if (!envio) {
       return { success: false, error: 'Envío no encontrado' }
     }
@@ -354,67 +361,6 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
               },
             })
           }
-        })
-
-        await Promise.all(promises)
-      })
-    }
-    // Si cambia a "entregado", agregar al inventario destino
-    else if (nuevoEstado === 'entregado' && envio.estado !== 'entregado') {
-      await prisma.$transaction(async (tx) => {
-        // Actualizar envío primero
-        await tx.envio.update({
-          where: { id: envioId },
-          data: {
-            estado: nuevoEstado,
-            fechaEntrega: new Date(),
-          },
-        })
-
-        // Procesar items en paralelo
-        const promises = envio.items.map(async (item) => {
-          const cantidadRecibida = item.cantidadEnviada || item.cantidadSolicitada
-
-          // Upsert inventario destino
-          const inventario = await tx.inventario.upsert({
-            where: {
-              sucursalId_productoId: {
-                sucursalId: envio.sucursalDestinoId,
-                productoId: item.productoId,
-              },
-            },
-            update: {
-              cantidadActual: { increment: cantidadRecibida },
-            },
-            create: {
-              sucursalId: envio.sucursalDestinoId,
-              productoId: item.productoId,
-              cantidadActual: cantidadRecibida,
-              stockMinimo: 10,
-            },
-          })
-
-          // Crear movimiento y actualizar envioItem en paralelo
-          await Promise.all([
-            tx.movimientoInventario.create({
-              data: {
-                inventarioId: inventario.id,
-                productoId: item.productoId,
-                tipo: 'entrada',
-                cantidad: cantidadRecibida,
-                motivo: `Recepción envío #${envioId.slice(0, 8)}`,
-              },
-            }),
-            tx.envioItem.update({
-              where: {
-                envioId_productoId: {
-                  envioId: envio.id,
-                  productoId: item.productoId,
-                },
-              },
-              data: { cantidadRecibida },
-            }),
-          ])
         })
 
         await Promise.all(promises)

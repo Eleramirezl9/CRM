@@ -346,10 +346,9 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
         if (!item) continue
 
         const cantidadRecibida = ajuste.cantidadRecibida
-        const cantidadEnviada = item.cantidadSolicitada
 
-        // Actualizar inventario
-        await tx.inventario.upsert({
+        // Actualizar inventario y obtener el ID
+        const inventario = await tx.inventario.upsert({
           where: {
             sucursalId_productoId: {
               sucursalId: envio.sucursalDestinoId,
@@ -369,13 +368,13 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
           },
         })
 
-        // Registrar movimiento
+        // Registrar movimiento con el ID correcto del inventario
         await tx.movimientoInventario.create({
           data: {
-            inventarioId: 0, // Se calculará en la query
+            inventarioId: inventario.id,
             tipo: 'entrada',
             cantidad: cantidadRecibida,
-            motivo: `Recepción de envío #${envioId}`,
+            motivo: `Recepción de envío #${envioId.slice(-6).toUpperCase()}`,
             productoId: ajuste.productoId,
             creadorId: parseInt(session.user.id),
           },
@@ -444,7 +443,7 @@ export async function registrarDevolucion(
 
     await prisma.$transaction(async (tx) => {
       // Crear devolución
-      const devolucion = await tx.devolucion.create({
+      await tx.devolucion.create({
         data: {
           operacionId,
           productoId,
@@ -467,10 +466,10 @@ export async function registrarDevolucion(
           },
         },
       })
-
-      // Recalcular totales de la operación
-      await recalcularTotalesOperacion(operacionId)
     })
+
+    // Recalcular totales de la operación (fuera de la transacción)
+    await recalcularTotalesOperacion(operacionId)
 
     return { success: true, message: 'Devolución registrada exitosamente' }
   } catch (error) {
@@ -582,10 +581,158 @@ export async function obtenerEnviosPendientesConfirmacion(sucursalId: string) {
       orderBy: { createdAt: 'desc' },
     })
 
+    // Debug: ver todos los envíos hacia esta sucursal
+    const todosEnvios = await prisma.envio.findMany({
+      where: { sucursalDestinoId: sucursalId },
+      select: { id: true, estado: true, createdAt: true }
+    })
+    console.log(`[DEBUG] Sucursal ${sucursalId} - Envíos totales: ${todosEnvios.length}`)
+    console.log(`[DEBUG] Estados:`, todosEnvios.map(e => ({ id: e.id.slice(-6), estado: e.estado })))
+    console.log(`[DEBUG] En tránsito encontrados: ${envios.length}`)
+
     return { success: true, envios }
   } catch (error) {
     console.error('Error al obtener envíos pendientes:', error)
     return { success: false, error: 'Error al obtener envíos pendientes', envios: [] }
+  }
+}
+
+// ============= REPORTAR DIFERENCIAS =============
+
+interface Diferencia {
+  productoId: string
+  productoNombre: string
+  cantidadEsperada: number
+  cantidadRecibida: number
+  diferencia: number
+  tipo: 'faltante' | 'sobrante'
+}
+
+export async function reportarDiferenciaEnvio(
+  envioId: string,
+  diferencias: Diferencia[],
+  observaciones?: string
+) {
+  try {
+    // Validar sesion
+    await verifySession()
+
+    const session = await getServerSession()
+    if (!session) {
+      return { success: false, error: 'No autorizado' }
+    }
+
+    // Verificar permiso para confirmar envios
+    const permisoCheck = await checkPermiso(PERMISOS.ENVIOS_CONFIRMAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para reportar diferencias' }
+    }
+
+    // Validar datos de entrada
+    if (!envioId || typeof envioId !== 'string') {
+      return { success: false, error: 'ID de envio invalido' }
+    }
+
+    if (!diferencias || !Array.isArray(diferencias) || diferencias.length === 0) {
+      return { success: false, error: 'Debe incluir al menos una diferencia' }
+    }
+
+    // Obtener envio con detalles
+    const envio = await prisma.envio.findUnique({
+      where: { id: envioId },
+      include: {
+        sucursalOrigen: true,
+        sucursalDestino: true,
+        creador: true,
+      },
+    })
+
+    if (!envio) {
+      return { success: false, error: 'Envio no encontrado' }
+    }
+
+    // Verificar que el usuario tenga acceso a la sucursal destino
+    if (session.user.rol === 'sucursal' && session.user.sucursalId !== envio.sucursalDestinoId) {
+      return { success: false, error: 'No tienes acceso para reportar diferencias en este envio' }
+    }
+
+    // Crear mensaje de notificacion
+    const mensajeDiferencias = diferencias
+      .map(d => `• ${d.productoNombre}: ${d.tipo === 'faltante' ? 'Faltaron' : 'Sobraron'} ${d.diferencia} unidades (esperado: ${d.cantidadEsperada}, recibido: ${d.cantidadRecibida})`)
+      .join('\n')
+
+    const mensajeCompleto = `⚠️ DIFERENCIAS EN ENVIO #${envioId.slice(-6).toUpperCase()}
+
+De: ${envio.sucursalOrigen.nombre}
+A: ${envio.sucursalDestino.nombre}
+Fecha: ${new Date().toLocaleDateString('es', { day: '2-digit', month: 'long', year: 'numeric' })}
+
+DIFERENCIAS DETECTADAS:
+${mensajeDiferencias}
+
+${observaciones ? `OBSERVACIONES: ${observaciones}` : ''}
+
+Reportado por: ${session.user.email || 'Usuario'}`
+
+    // Crear notificaciones
+    const notificaciones = []
+
+    // Notificar al creador del envio (quien lo preparo en bodega)
+    if (envio.creadorId) {
+      notificaciones.push({
+        usuarioId: envio.creadorId,
+        mensaje: mensajeCompleto,
+        leida: false,
+      })
+    }
+
+    // Obtener usuarios de bodega para notificar (limitado a 50)
+    const usuariosBodega = await prisma.usuario.findMany({
+      where: {
+        rol: {
+          nombre: 'bodega'
+        },
+        activo: true
+      },
+      select: { id: true },
+      take: 50
+    })
+
+    for (const usuario of usuariosBodega) {
+      // Evitar duplicados si el creador ya es de bodega
+      if (usuario.id !== envio.creadorId) {
+        notificaciones.push({
+          usuarioId: usuario.id,
+          mensaje: mensajeCompleto,
+          leida: false,
+        })
+      }
+    }
+
+    // Crear todas las notificaciones
+    if (notificaciones.length > 0) {
+      await prisma.notificacion.createMany({
+        data: notificaciones,
+      })
+    }
+
+    // Actualizar observaciones del envio
+    await prisma.envio.update({
+      where: { id: envioId },
+      data: {
+        observaciones: observaciones
+          ? `${envio.observaciones ? envio.observaciones + '\n\n' : ''}DIFERENCIAS REPORTADAS:\n${diferencias.map(d => `${d.productoNombre}: ${d.tipo} ${d.diferencia}`).join(', ')}\nObs: ${observaciones}`
+          : `${envio.observaciones ? envio.observaciones + '\n\n' : ''}DIFERENCIAS REPORTADAS:\n${diferencias.map(d => `${d.productoNombre}: ${d.tipo} ${d.diferencia}`).join(', ')}`,
+      },
+    })
+
+    return {
+      success: true,
+      message: `Diferencias reportadas. Se notificó a ${notificaciones.length} usuario(s).`
+    }
+  } catch (error) {
+    console.error('Error al reportar diferencias:', error)
+    return { success: false, error: 'Error al reportar diferencias' }
   }
 }
 

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { Badge } from '@/compartido/componentes/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/compartido/componentes/ui/tabs'
-import ConfirmarRecepcion from './confirmar-recepcion'
+import DocumentoRecepcion from './documento-recepcion'
 import RegistroDevolucion from './registro-devolucion'
 import ResumenDia from './resumen-dia'
 import { getServerSession } from '@/caracteristicas/autenticacion/server'
@@ -210,8 +210,9 @@ export default async function PerfilSucursalPage({ params }: PerfilSucursalPageP
         </TabsContent>
 
         <TabsContent value="recepciones">
-          <ConfirmarRecepcion
+          <DocumentoRecepcion
             sucursalId={params.id}
+            sucursalNombre={sucursal.nombre}
             enviosPendientes={enviosSuccess && envios ? envios : []}
           />
         </TabsContent>
