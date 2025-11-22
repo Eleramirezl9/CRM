@@ -288,6 +288,7 @@ export async function obtenerSucursales() {
       select: {
         id: true,
         nombre: true,
+        empresaId: true,
       },
       orderBy: { nombre: 'asc' },
     })

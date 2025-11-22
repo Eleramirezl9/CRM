@@ -7,34 +7,53 @@ import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
 import { NativeSelect } from '@/compartido/componentes/ui/native-select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
-import { crearEnvio } from '@/caracteristicas/envios/acciones'
+import { Badge } from '@/compartido/componentes/ui/badge'
+import { actualizarEnvio } from '@/caracteristicas/envios/acciones'
 import { obtenerSucursales } from '@/caracteristicas/inventario/acciones'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
-import { Send, Package, Printer } from 'lucide-react'
+import { Save, Package, ArrowRight } from 'lucide-react'
+
+type Envio = {
+  id: string
+  estado: string
+  sucursalOrigenId: string
+  sucursalDestinoId: string
+  sucursalOrigen: { nombre: string }
+  sucursalDestino: { nombre: string }
+  items: Array<{
+    productoId: string
+    cantidadSolicitada: number
+    producto: { nombre: string; sku: string }
+  }>
+}
 
 type Producto = {
   id: string
   nombre: string
   sku: string
-  unidadMedida: string | null
 }
 
 type Sucursal = {
   id: string
   nombre: string
-  empresaId?: string
 }
 
-export default function EnvioForm() {
+export default function EnvioEditForm({ envio }: { envio: Envio }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
 
-  const [sucursalOrigenId, setSucursalOrigenId] = useState('')
-  const [sucursalDestinoId, setSucursalDestinoId] = useState('')
-  const [cantidades, setCantidades] = useState<Record<string, number>>({})
+  const [sucursalDestinoId, setSucursalDestinoId] = useState(envio.sucursalDestinoId)
+  const [cantidades, setCantidades] = useState<Record<string, number>>(() => {
+    // Inicializar con las cantidades actuales del envío
+    const inicial: Record<string, number> = {}
+    envio.items.forEach(item => {
+      inicial[item.productoId] = item.cantidadSolicitada
+    })
+    return inicial
+  })
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -45,20 +64,11 @@ export default function EnvioForm() {
 
       setSucursales(sucursalesRes.sucursales || [])
       setProductos(productosRes.productos || [])
-
-      // Por defecto, seleccionar Bodega Central como origen
-      const bodegaCentral = sucursalesRes.sucursales?.find(
-        (s: Sucursal) => s.nombre.toLowerCase().includes('bodega')
-      )
-      if (bodegaCentral) {
-        setSucursalOrigenId(bodegaCentral.id)
-      }
     }
 
     cargarDatos()
   }, [])
 
-  // Calcular items con cantidad > 0
   const itemsAEnviar = useMemo(() => {
     return Object.entries(cantidades)
       .filter(([_, cantidad]) => cantidad > 0)
@@ -81,30 +91,14 @@ export default function EnvioForm() {
     setLoading(true)
     setError(null)
 
-    if (!sucursalOrigenId || !sucursalDestinoId) {
-      setError('Seleccione sucursal origen y destino')
-      setLoading(false)
-      return
-    }
-
-    if (sucursalOrigenId === sucursalDestinoId) {
-      setError('El origen y destino deben ser diferentes')
-      setLoading(false)
-      return
-    }
-
     if (itemsAEnviar.length === 0) {
       setError('Ingrese cantidad en al menos un producto')
       setLoading(false)
       return
     }
 
-    const sucursal = sucursales.find(s => s.id === sucursalOrigenId)
-
-    const result = await crearEnvio({
-      empresaId: sucursal?.empresaId || 'default',
-      sucursalOrigenId,
-      sucursalDestinoId,
+    const result = await actualizarEnvio(envio.id, {
+      sucursalDestinoId: sucursalDestinoId !== envio.sucursalDestinoId ? sucursalDestinoId : undefined,
       items: itemsAEnviar,
     })
 
@@ -114,37 +108,32 @@ export default function EnvioForm() {
       router.push('/dashboard/envios')
       router.refresh()
     } else {
-      setError(result.error || 'Error al crear envío')
+      setError(result.error || 'Error al actualizar envío')
     }
   }
 
-  const sucursalOrigen = sucursales.find(s => s.id === sucursalOrigenId)
-  const sucursalDestino = sucursales.find(s => s.id === sucursalDestinoId)
+  const estadoConfig: Record<string, { label: string; variant: 'outline' | 'secondary' }> = {
+    pendiente: { label: 'Pendiente', variant: 'outline' },
+    en_preparacion: { label: 'En Preparación', variant: 'secondary' },
+  }
+
+  const config = estadoConfig[envio.estado] || estadoConfig.pendiente
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Header con sucursales */}
+      {/* Info del envío */}
       <Card>
         <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <Badge variant={config.variant}>{config.label}</Badge>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="origen" className="text-xs font-medium text-muted-foreground">
-                ORIGEN
-              </Label>
-              <NativeSelect
-                id="origen"
-                value={sucursalOrigenId}
-                onChange={(e) => setSucursalOrigenId(e.target.value)}
-                className="font-semibold"
-                required
-              >
-                <option value="">Seleccionar</option>
-                {sucursales.map((suc) => (
-                  <option key={suc.id} value={suc.id}>
-                    {suc.nombre}
-                  </option>
-                ))}
-              </NativeSelect>
+              <Label className="text-xs font-medium text-muted-foreground">ORIGEN</Label>
+              <div className="font-semibold p-2 bg-muted rounded">
+                {envio.sucursalOrigen.nombre}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -156,11 +145,9 @@ export default function EnvioForm() {
                 value={sucursalDestinoId}
                 onChange={(e) => setSucursalDestinoId(e.target.value)}
                 className="font-semibold"
-                required
               >
-                <option value="">Seleccionar</option>
                 {sucursales
-                  .filter(s => s.id !== sucursalOrigenId)
+                  .filter(s => s.id !== envio.sucursalOrigenId)
                   .map((suc) => (
                     <option key={suc.id} value={suc.id}>
                       {suc.nombre}
@@ -172,7 +159,7 @@ export default function EnvioForm() {
         </CardContent>
       </Card>
 
-      {/* Lista de productos tipo checklist */}
+      {/* Lista de productos */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -182,13 +169,11 @@ export default function EnvioForm() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="border-t">
-            {/* Header de la tabla */}
             <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_120px] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
               <div>PRODUCTO</div>
               <div className="text-center">CANTIDAD</div>
             </div>
 
-            {/* Lista de productos */}
             <div className="divide-y max-h-[400px] overflow-y-auto">
               {productos.length === 0 ? (
                 <div className="px-4 py-8 text-center text-muted-foreground">
@@ -228,15 +213,8 @@ export default function EnvioForm() {
       {itemsAEnviar.length > 0 && (
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium">
-                  {itemsAEnviar.length} producto{itemsAEnviar.length !== 1 ? 's' : ''} seleccionado{itemsAEnviar.length !== 1 ? 's' : ''}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Total: {itemsAEnviar.reduce((sum, item) => sum + item.cantidadSolicitada, 0)} unidades
-                </div>
-              </div>
+            <div className="text-sm font-medium">
+              {itemsAEnviar.length} producto{itemsAEnviar.length !== 1 ? 's' : ''} - Total: {itemsAEnviar.reduce((sum, item) => sum + item.cantidadSolicitada, 0)} unidades
             </div>
           </CardContent>
         </Card>
@@ -255,8 +233,8 @@ export default function EnvioForm() {
           disabled={loading || itemsAEnviar.length === 0}
           className="flex-1 sm:flex-none"
         >
-          <Send className="w-4 h-4 mr-2" />
-          {loading ? 'Creando...' : 'Crear Envío'}
+          <Save className="w-4 h-4 mr-2" />
+          {loading ? 'Guardando...' : 'Guardar Cambios'}
         </Button>
         <Button
           type="button"

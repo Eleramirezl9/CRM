@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/compartido/componentes/ui/button'
 import { NativeSelect as Select } from '@/compartido/componentes/ui/native-select'
 import { Label } from '@/compartido/componentes/ui/label'
-import { useState, useMemo, useCallback } from 'react'
-import MovimientoDialog from './movimiento-dialog'
+import { useState, useMemo } from 'react'
 import { useSucursales } from '@/compartido/hooks/useSucursales'
-import { Package, MapPin, AlertTriangle, CheckCircle, ArrowUpDown } from 'lucide-react'
+import { Package, AlertTriangle, Send, MapPin } from 'lucide-react'
 import { NumeroFormateado } from '@/compartido/componentes/NumeroFormateado'
+import Link from 'next/link'
 
 type Consolidado = {
   producto: {
@@ -31,15 +31,8 @@ type Consolidado = {
 }
 
 export default function InventarioVista({ consolidado }: { consolidado: Consolidado[] }) {
-  const [selectedProducto, setSelectedProducto] = useState<Consolidado | null>(null)
-  const [showDialog, setShowDialog] = useState(false)
   const { sucursales } = useSucursales()
   const [filtroSucursal, setFiltroSucursal] = useState('')
-
-  const handleMovimiento = useCallback((producto: Consolidado) => {
-    setSelectedProducto(producto)
-    setShowDialog(true)
-  }, [])
 
   // Filtrar consolidado por sucursal si está seleccionada (memoizado)
   const consolidadoFiltrado = useMemo(() => {
@@ -107,24 +100,32 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
         </Card>
       </div>
 
-      {/* Filtro */}
+      {/* Acciones y Filtro */}
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Label className="whitespace-nowrap">Filtrar por Sucursal</Label>
-            <Select
-              value={filtroSucursal}
-              onChange={(e) => setFiltroSucursal(e.target.value)}
-              className="w-full sm:w-64"
-              data-testid="filtro-sucursal"
-            >
-              <option value="">Todas las sucursales</option>
-              {sucursales.map((suc) => (
-                <option key={suc.id} value={suc.id}>
-                  {suc.nombre}
-                </option>
-              ))}
-            </Select>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Label className="whitespace-nowrap">Filtrar por Sucursal</Label>
+              <Select
+                value={filtroSucursal}
+                onChange={(e) => setFiltroSucursal(e.target.value)}
+                className="w-full sm:w-64"
+                data-testid="filtro-sucursal"
+              >
+                <option value="">Todas las sucursales</option>
+                {sucursales.map((suc) => (
+                  <option key={suc.id} value={suc.id}>
+                    {suc.nombre}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Link href="/dashboard/envios/nuevo">
+              <Button className="w-full sm:w-auto">
+                <Send className="w-4 h-4 mr-2" />
+                Crear Envío
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -144,17 +145,16 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Producto</TableHead>
-                  <TableHead>Stock Total</TableHead>
-                  <TableHead>Stock Mínimo</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Mínimo</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Distribución</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Por Sucursal</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {consolidadoFiltrado.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No hay productos en inventario
                     </TableCell>
                   </TableRow>
@@ -190,17 +190,6 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                             </div>
                           ))}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMovimiento(item)}
-                          data-testid={`registrar-movimiento-${idx + 1}`}
-                        >
-                          <ArrowUpDown className="w-4 h-4 mr-1" />
-                          Movimiento
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -280,29 +269,11 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                     ))}
                   </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => handleMovimiento(item)}
-                  data-testid={`registrar-movimiento-${idx + 1}`}
-                >
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  Registrar Movimiento
-                </Button>
               </CardContent>
             </Card>
           ))
         )}
       </div>
-
-      {selectedProducto && (
-        <MovimientoDialog
-          open={showDialog}
-          onOpenChange={setShowDialog}
-          producto={selectedProducto}
-        />
-      )}
     </>
   )
 }

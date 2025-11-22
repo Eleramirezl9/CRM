@@ -44,6 +44,141 @@ export async function obtenerEnvios() {
   }
 }
 
+// Obtener envío por ID
+export async function obtenerEnvioPorId(envioId: string) {
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado', envio: null }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_VER)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos', envio: null }
+  }
+
+  try {
+    const envio = await prisma.envio.findUnique({
+      where: { id: envioId },
+      include: {
+        sucursalOrigen: true,
+        sucursalDestino: true,
+        items: {
+          include: {
+            producto: true,
+          },
+        },
+        creador: {
+          select: {
+            nombre: true,
+          },
+        },
+      },
+    })
+
+    if (!envio) {
+      return { success: false, error: 'Envío no encontrado', envio: null }
+    }
+
+    return { success: true, envio }
+  } catch (error) {
+    console.error('Error al obtener envío:', error)
+    return { success: false, error: 'Error al obtener envío', envio: null }
+  }
+}
+
+// Actualizar envío (solo si no está entregado o en tránsito)
+export async function actualizarEnvio(
+  envioId: string,
+  data: {
+    sucursalDestinoId?: string
+    items: Array<{
+      productoId: string
+      cantidadSolicitada: number
+    }>
+  }
+) {
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.ENVIOS_EDITAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para editar envíos' }
+  }
+
+  try {
+    const envio = await prisma.envio.findUnique({
+      where: { id: envioId },
+      include: { items: true },
+    })
+
+    if (!envio) {
+      return { success: false, error: 'Envío no encontrado' }
+    }
+
+    // Solo permitir edición si está pendiente o en preparación
+    if (envio.estado === 'en_transito' || envio.estado === 'entregado') {
+      return { success: false, error: 'No se puede editar un envío en tránsito o entregado' }
+    }
+
+    if (data.items.length === 0) {
+      return { success: false, error: 'Debe agregar al menos un producto' }
+    }
+
+    // Verificar stock disponible
+    for (const item of data.items) {
+      const inventario = await prisma.inventario.findUnique({
+        where: {
+          sucursalId_productoId: {
+            sucursalId: envio.sucursalOrigenId,
+            productoId: item.productoId,
+          },
+        },
+      })
+
+      if (!inventario || inventario.cantidadActual < item.cantidadSolicitada) {
+        const producto = await prisma.producto.findUnique({ where: { id: item.productoId } })
+        return {
+          success: false,
+          error: `Stock insuficiente de ${producto?.nombre}. Disponible: ${inventario?.cantidadActual || 0}`,
+        }
+      }
+    }
+
+    // Actualizar envío en transacción
+    await prisma.$transaction(async (tx) => {
+      // Eliminar items anteriores
+      await tx.envioItem.deleteMany({
+        where: { envioId },
+      })
+
+      // Crear nuevos items
+      await tx.envioItem.createMany({
+        data: data.items.map(item => ({
+          envioId,
+          productoId: item.productoId,
+          cantidadSolicitada: item.cantidadSolicitada,
+        })),
+      })
+
+      // Actualizar destino si cambió
+      if (data.sucursalDestinoId) {
+        await tx.envio.update({
+          where: { id: envioId },
+          data: { sucursalDestinoId: data.sucursalDestinoId },
+        })
+      }
+    })
+
+    revalidatePath('/dashboard/envios')
+    return { success: true }
+  } catch (error) {
+    console.error('Error al actualizar envío:', error)
+    return { success: false, error: 'Error al actualizar envío' }
+  }
+}
+
 // Crear envío
 export async function crearEnvio(data: {
   empresaId: string
@@ -157,32 +292,57 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
     
     // Si cambia a "en_transito", descontar del inventario origen
     if (nuevoEstado === 'en_transito' && envio.estado !== 'en_transito') {
+      // Pre-cargar todos los inventarios de una vez
+      const inventarios = await prisma.inventario.findMany({
+        where: {
+          sucursalId: envio.sucursalOrigenId,
+          productoId: { in: envio.items.map(i => i.productoId) },
+        },
+      })
+
+      const inventarioMap = new Map(
+        inventarios.map(inv => [`${inv.sucursalId}-${inv.productoId}`, inv])
+      )
+
       await prisma.$transaction(async (tx) => {
-        for (const item of envio.items) {
-          await tx.inventario.update({
-            where: {
-              sucursalId_productoId: {
-                sucursalId: envio.sucursalOrigenId,
-                productoId: item.productoId,
+        // Actualizar envío primero
+        await tx.envio.update({
+          where: { id: envioId },
+          data: {
+            estado: nuevoEstado,
+            fechaEnvio: new Date(),
+          },
+        })
+
+        // Procesar items en paralelo donde sea posible
+        const promises = envio.items.map(async (item) => {
+          const inventario = inventarioMap.get(`${envio.sucursalOrigenId}-${item.productoId}`)
+
+          // Update inventario y envioItem en paralelo
+          await Promise.all([
+            tx.inventario.update({
+              where: {
+                sucursalId_productoId: {
+                  sucursalId: envio.sucursalOrigenId,
+                  productoId: item.productoId,
+                },
               },
-            },
-            data: {
-              cantidadActual: {
-                decrement: item.cantidadSolicitada,
+              data: {
+                cantidadActual: { decrement: item.cantidadSolicitada },
               },
-            },
-          })
-          
+            }),
+            tx.envioItem.update({
+              where: {
+                envioId_productoId: {
+                  envioId: envio.id,
+                  productoId: item.productoId,
+                },
+              },
+              data: { cantidadEnviada: item.cantidadSolicitada },
+            }),
+          ])
+
           // Registrar movimiento
-          const inventario = await tx.inventario.findUnique({
-            where: {
-              sucursalId_productoId: {
-                sucursalId: envio.sucursalOrigenId,
-                productoId: item.productoId,
-              },
-            },
-          })
-          
           if (inventario) {
             await tx.movimientoInventario.create({
               data: {
@@ -194,93 +354,15 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
               },
             })
           }
-          
-          // Actualizar cantidad enviada
-          await tx.envioItem.update({
-            where: {
-              envioId_productoId: {
-                envioId: envio.id,
-                productoId: item.productoId,
-              },
-            },
-            data: {
-              cantidadEnviada: item.cantidadSolicitada,
-            },
-          })
-        }
-        
-        await tx.envio.update({
-          where: { id: envioId },
-          data: {
-            estado: nuevoEstado,
-            fechaEnvio: new Date(),
-          },
         })
+
+        await Promise.all(promises)
       })
     }
     // Si cambia a "entregado", agregar al inventario destino
     else if (nuevoEstado === 'entregado' && envio.estado !== 'entregado') {
       await prisma.$transaction(async (tx) => {
-        for (const item of envio.items) {
-          const cantidadRecibida = item.cantidadEnviada || item.cantidadSolicitada
-          
-          // Crear o actualizar inventario destino
-          await tx.inventario.upsert({
-            where: {
-              sucursalId_productoId: {
-                sucursalId: envio.sucursalDestinoId,
-                productoId: item.productoId,
-              },
-            },
-            update: {
-              cantidadActual: {
-                increment: cantidadRecibida,
-              },
-            },
-            create: {
-              sucursalId: envio.sucursalDestinoId,
-              productoId: item.productoId,
-              cantidadActual: cantidadRecibida,
-              stockMinimo: 10, // Default
-            },
-          })
-          
-          // Registrar movimiento
-          const inventario = await tx.inventario.findUnique({
-            where: {
-              sucursalId_productoId: {
-                sucursalId: envio.sucursalDestinoId,
-                productoId: item.productoId,
-              },
-            },
-          })
-          
-          if (inventario) {
-            await tx.movimientoInventario.create({
-              data: {
-                inventarioId: inventario.id,
-                productoId: item.productoId,
-                tipo: 'entrada',
-                cantidad: cantidadRecibida,
-                motivo: `Recepción envío #${envioId.slice(0, 8)}`,
-              },
-            })
-          }
-          
-          // Actualizar cantidad recibida
-          await tx.envioItem.update({
-            where: {
-              envioId_productoId: {
-                envioId: envio.id,
-                productoId: item.productoId,
-              },
-            },
-            data: {
-              cantidadRecibida,
-            },
-          })
-        }
-        
+        // Actualizar envío primero
         await tx.envio.update({
           where: { id: envioId },
           data: {
@@ -288,8 +370,57 @@ export async function actualizarEstadoEnvio(envioId: string, nuevoEstado: string
             fechaEntrega: new Date(),
           },
         })
+
+        // Procesar items en paralelo
+        const promises = envio.items.map(async (item) => {
+          const cantidadRecibida = item.cantidadEnviada || item.cantidadSolicitada
+
+          // Upsert inventario destino
+          const inventario = await tx.inventario.upsert({
+            where: {
+              sucursalId_productoId: {
+                sucursalId: envio.sucursalDestinoId,
+                productoId: item.productoId,
+              },
+            },
+            update: {
+              cantidadActual: { increment: cantidadRecibida },
+            },
+            create: {
+              sucursalId: envio.sucursalDestinoId,
+              productoId: item.productoId,
+              cantidadActual: cantidadRecibida,
+              stockMinimo: 10,
+            },
+          })
+
+          // Crear movimiento y actualizar envioItem en paralelo
+          await Promise.all([
+            tx.movimientoInventario.create({
+              data: {
+                inventarioId: inventario.id,
+                productoId: item.productoId,
+                tipo: 'entrada',
+                cantidad: cantidadRecibida,
+                motivo: `Recepción envío #${envioId.slice(0, 8)}`,
+              },
+            }),
+            tx.envioItem.update({
+              where: {
+                envioId_productoId: {
+                  envioId: envio.id,
+                  productoId: item.productoId,
+                },
+              },
+              data: { cantidadRecibida },
+            }),
+          ])
+        })
+
+        await Promise.all(promises)
       })
     } else {
+      // Estado simple (pendiente -> en_preparacion)
       await prisma.envio.update({
         where: { id: envioId },
         data: { estado: nuevoEstado },
