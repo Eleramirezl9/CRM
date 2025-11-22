@@ -198,10 +198,12 @@ export default function MovimientosLista({ movimientos, estadisticas }: Props) {
                           <MapPin className="w-3 h-3" />
                           {mov.sucursal.nombre}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {mov.creador.nombre}
-                        </span>
+                        {mov.creador && (
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {mov.creador.nombre}
+                          </span>
+                        )}
                         <span>{formatearHora(mov.creado_at)}</span>
                       </div>
 
