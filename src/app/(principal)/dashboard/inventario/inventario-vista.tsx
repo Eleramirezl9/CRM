@@ -8,7 +8,7 @@ import { NativeSelect as Select } from '@/compartido/componentes/ui/native-selec
 import { Label } from '@/compartido/componentes/ui/label'
 import { useState, useMemo } from 'react'
 import { useSucursales } from '@/compartido/hooks/useSucursales'
-import { Package, AlertTriangle, Send, MapPin } from 'lucide-react'
+import { Package, AlertTriangle, Send, MapPin, Warehouse, Store } from 'lucide-react'
 import { NumeroFormateado } from '@/compartido/componentes/NumeroFormateado'
 import Link from 'next/link'
 
@@ -53,53 +53,22 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
     const total = consolidado.reduce((sum, item) => sum + item.stockTotal, 0)
     const criticos = consolidado.filter(item => item.alertaCritica).length
     const bajos = consolidado.filter(item => !item.alertaCritica && item.stockTotal < item.stockMinimoTotal * 1.5).length
-    return { total, criticos, bajos, productos: consolidado.length }
+
+    // Calcular stock en bodega vs sucursales
+    const stockBodega = consolidado.reduce((sum, item) => {
+      const bodega = item.sucursales.find(s =>
+        s.sucursal.toLowerCase().includes('bodega') ||
+        s.sucursal.toLowerCase().includes('central')
+      )
+      return sum + (bodega?.cantidad || 0)
+    }, 0)
+    const stockSucursales = total - stockBodega
+
+    return { total, criticos, bajos, productos: consolidado.length, stockBodega, stockSucursales }
   }, [consolidado])
 
   return (
     <>
-      {/* Resumen de estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Productos</div>
-            <div className="text-2xl font-bold">
-              <NumeroFormateado valor={stats.productos} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Stock Total</div>
-            <div className="text-2xl font-bold">
-              <NumeroFormateado valor={stats.total} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-red-500" />
-              Stock Crítico
-            </div>
-            <div className="text-2xl font-bold text-red-600">
-              <NumeroFormateado valor={stats.criticos} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-yellow-500" />
-              Stock Bajo
-            </div>
-            <div className="text-2xl font-bold text-yellow-600">
-              <NumeroFormateado valor={stats.bajos} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Acciones y Filtro */}
       <Card className="mb-6">
         <CardContent className="p-4">
@@ -180,15 +149,33 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
                       </TableCell>
                       <TableCell>
                         <div className="text-xs space-y-1">
-                          {item.sucursales.map((suc, sucIdx) => (
-                            <div
-                              key={sucIdx}
-                              className={suc.critico ? 'text-destructive font-medium' : ''}
-                              data-testid="nombre-sucursal"
-                            >
-                              {suc.sucursal}: <NumeroFormateado valor={suc.cantidad} />
-                            </div>
-                          ))}
+                          {/* Bodega Central primero */}
+                          {item.sucursales
+                            .filter(s => s.sucursal.toLowerCase().includes('bodega') || s.sucursal.toLowerCase().includes('central'))
+                            .map((suc, sucIdx) => (
+                              <div
+                                key={`bodega-${sucIdx}`}
+                                className="p-1.5 bg-blue-50 border-l-2 border-blue-500 rounded-r mb-2"
+                                data-testid="nombre-sucursal"
+                              >
+                                <span className="font-semibold text-blue-700">{suc.sucursal}:</span>{' '}
+                                <span className="font-bold text-blue-800"><NumeroFormateado valor={suc.cantidad} /></span>
+                              </div>
+                            ))
+                          }
+                          {/* Sucursales */}
+                          {item.sucursales
+                            .filter(s => !s.sucursal.toLowerCase().includes('bodega') && !s.sucursal.toLowerCase().includes('central'))
+                            .map((suc, sucIdx) => (
+                              <div
+                                key={sucIdx}
+                                className={`pl-1.5 ${suc.critico ? 'text-destructive font-medium' : ''}`}
+                                data-testid="nombre-sucursal"
+                              >
+                                {suc.sucursal}: <NumeroFormateado valor={suc.cantidad} />
+                              </div>
+                            ))
+                          }
                         </div>
                       </TableCell>
                     </TableRow>
@@ -246,28 +233,61 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
 
                 {/* Distribución por sucursal */}
                 <div className="mb-4">
-                  <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    Distribución por Sucursal
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {item.sucursales.map((suc, sucIdx) => (
-                      <div
-                        key={sucIdx}
-                        className={`text-sm p-2 rounded ${
-                          suc.critico
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-muted'
-                        }`}
-                        data-testid="nombre-sucursal"
-                      >
-                        <div className="font-medium truncate">{suc.sucursal}</div>
-                        <div className="text-lg font-bold">
-                          <NumeroFormateado valor={suc.cantidad} />
-                        </div>
+                  {/* Bodega Central primero */}
+                  {item.sucursales.some(s => s.sucursal.toLowerCase().includes('bodega') || s.sucursal.toLowerCase().includes('central')) && (
+                    <div className="mb-3">
+                      <h4 className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
+                        <Warehouse className="w-3 h-3" />
+                        Disponible en Bodega
+                      </h4>
+                      {item.sucursales
+                        .filter(s => s.sucursal.toLowerCase().includes('bodega') || s.sucursal.toLowerCase().includes('central'))
+                        .map((suc, sucIdx) => (
+                          <div
+                            key={`bodega-${sucIdx}`}
+                            className="text-sm p-3 rounded bg-blue-50 border-l-4 border-blue-500"
+                            data-testid="nombre-sucursal"
+                          >
+                            <div className="font-medium text-blue-800">{suc.sucursal}</div>
+                            <div className="text-2xl font-bold text-blue-700">
+                              <NumeroFormateado valor={suc.cantidad} />
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+
+                  {/* Sucursales */}
+                  {item.sucursales.some(s => !s.sucursal.toLowerCase().includes('bodega') && !s.sucursal.toLowerCase().includes('central')) && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Store className="w-3 h-3" />
+                        En Sucursales
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {item.sucursales
+                          .filter(s => !s.sucursal.toLowerCase().includes('bodega') && !s.sucursal.toLowerCase().includes('central'))
+                          .map((suc, sucIdx) => (
+                            <div
+                              key={sucIdx}
+                              className={`text-sm p-2 rounded ${
+                                suc.critico
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-muted'
+                              }`}
+                              data-testid="nombre-sucursal"
+                            >
+                              <div className="font-medium truncate">{suc.sucursal}</div>
+                              <div className="text-lg font-bold">
+                                <NumeroFormateado valor={suc.cantidad} />
+                              </div>
+                            </div>
+                          ))
+                        }
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
