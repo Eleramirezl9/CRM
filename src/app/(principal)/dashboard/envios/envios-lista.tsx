@@ -146,7 +146,8 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
   
   return (
     <>
-      <Card>
+      {/* Vista Desktop - Tabla */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -171,7 +172,7 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
               envios.map((envio) => {
                 const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
                 const proximoEstado = getProximoEstado(envio.estado)
-                
+
                 return (
                   <TableRow key={envio.id}>
                     <TableCell className="font-mono text-sm">#{envio.id.slice(0, 8)}</TableCell>
@@ -199,7 +200,6 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Editar - solo si no está en tránsito o entregado */}
                         {(envio.estado === 'pendiente' || envio.estado === 'en_preparacion') && (
                           <Link href={`/dashboard/envios/${envio.id}/editar`}>
                             <Button
@@ -244,6 +244,101 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
         </CardContent>
       </Card>
 
+      {/* Vista Móvil - Cards */}
+      <div className="md:hidden space-y-3">
+        {envios.length === 0 ? (
+          <Card>
+            <CardContent className="text-center text-muted-foreground py-8">
+              No hay envíos registrados
+            </CardContent>
+          </Card>
+        ) : (
+          envios.map((envio) => {
+            const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
+            const proximoEstado = getProximoEstado(envio.estado)
+
+            return (
+              <Card key={envio.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="font-mono text-sm font-medium">#{envio.id.slice(0, 8)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(envio.createdAt), 'dd MMM yyyy', { locale: es })}
+                      </div>
+                    </div>
+                    <Badge variant={config.variant}>{config.label}</Badge>
+                  </div>
+
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">De:</span>
+                      <span className="font-medium">{envio.sucursalOrigen.nombre}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">A:</span>
+                      <span className="font-medium">{envio.sucursalDestino.nombre}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted rounded-md p-3 mb-3">
+                    <div className="text-xs font-medium mb-2">Productos:</div>
+                    <div className="text-xs space-y-1">
+                      {envio.items.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>{item.producto.nombre}</span>
+                          <span className="font-medium">×{item.cantidadSolicitada}</span>
+                        </div>
+                      ))}
+                      {envio.items.length > 2 && (
+                        <div className="text-muted-foreground text-center pt-1">
+                          +{envio.items.length - 2} más
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {(envio.estado === 'pendiente' || envio.estado === 'en_preparacion') && (
+                      <Link href={`/dashboard/envios/${envio.id}/editar`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Editar
+                        </Button>
+                      </Link>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleImprimir(envio)}
+                      className="flex-1"
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Imprimir
+                    </Button>
+                  </div>
+
+                  {proximoEstado && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => handleCambiarEstado(envio.id, proximoEstado)}
+                      disabled={loadingEstado === envio.id}
+                    >
+                      {loadingEstado === envio.id ? (
+                        <span className="animate-pulse">Procesando...</span>
+                      ) : (
+                        `Cambiar a: ${estadoConfig[proximoEstado as keyof typeof estadoConfig].label}`
+                      )}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
+        )}
+      </div>
     </>
   )
 }

@@ -83,7 +83,7 @@ export default function InventarioVista({ consolidado }: { consolidado: Consolid
               >
                 <option value="">Todas las sucursales</option>
                 {sucursales.map((suc) => (
-                  <option key={suc.id} value={suc.id}>
+                  <option key={suc.id} value={suc.nombre}>
                     {suc.nombre}
                   </option>
                 ))}

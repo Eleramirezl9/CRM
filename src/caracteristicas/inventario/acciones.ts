@@ -270,6 +270,51 @@ export async function inicializarInventario(data: {
   }
 }
 
+// Actualizar solo el stock mínimo de un inventario existente
+export async function actualizarStockMinimo(data: {
+  productoId: string
+  sucursalId: string
+  stockMinimo: number
+}) {
+  // ✅ Verificación de seguridad
+  const session = await getCurrentSession()
+  if (!session) {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  const authCheck = await checkPermiso(PERMISOS.INVENTARIO_EDITAR)
+  if (!authCheck.authorized) {
+    return { success: false, error: authCheck.error || 'No tienes permisos para editar inventario' }
+  }
+
+  try {
+    const inventario = await prisma.inventario.upsert({
+      where: {
+        sucursalId_productoId: {
+          sucursalId: data.sucursalId,
+          productoId: data.productoId,
+        },
+      },
+      update: {
+        stockMinimo: data.stockMinimo,
+      },
+      create: {
+        sucursalId: data.sucursalId,
+        productoId: data.productoId,
+        cantidadActual: 0,
+        stockMinimo: data.stockMinimo,
+      },
+    })
+
+    revalidatePath('/dashboard/inventario')
+    revalidatePath('/dashboard/productos')
+    return { success: true, inventario }
+  } catch (error) {
+    console.error('Error al actualizar stock mínimo:', error)
+    return { success: false, error: 'Error al actualizar stock mínimo' }
+  }
+}
+
 // Obtener sucursales disponibles
 export async function obtenerSucursales() {
   // ✅ Verificación de seguridad

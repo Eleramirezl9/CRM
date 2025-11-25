@@ -7,6 +7,8 @@ import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/componentes/ui/card'
 import { crearProducto, actualizarProducto } from '@/caracteristicas/productos/acciones'
+import { useSucursales } from '@/compartido/hooks/useSucursales'
+import { inicializarInventario, actualizarStockMinimo } from '@/caracteristicas/inventario/acciones'
 
 type ProductoFormProps = {
   producto?: {
@@ -16,20 +18,33 @@ type ProductoFormProps = {
     costoUnitario: any
     precioVenta: any
     unidadMedida: string | null
+    inventarios?: Array<{
+      sucursalId: string
+      stockMinimo: number
+      sucursal: {
+        id: string
+        nombre: string
+      }
+    }>
   }
 }
 
 export default function ProductoForm({ producto }: ProductoFormProps) {
   const router = useRouter()
+  const { sucursales } = useSucursales()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
+  // Obtener stock mínimo actual (si existe, tomar el primero ya que es estándar)
+  const stockMinimoInicial = producto?.inventarios?.[0]?.stockMinimo || 10
+
   const [formData, setFormData] = useState({
     nombre: producto?.nombre || '',
     descripcion: producto?.descripcion || '',
     costoUnitario: producto ? parseFloat(producto.costoUnitario.toString()) : 0,
     precioVenta: producto ? parseFloat(producto.precioVenta.toString()) : 0,
     unidadMedida: producto?.unidadMedida || 'unidad',
+    stockMinimo: stockMinimoInicial,
   })
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,13 +80,37 @@ export default function ProductoForm({ producto }: ProductoFormProps) {
     const result = producto
       ? await actualizarProducto(producto.id, formData)
       : await crearProducto(formData)
-    
-    setLoading(false)
-    
+
     if (result.success) {
+      const productoId = producto?.id || result.producto?.id
+
+      if (productoId) {
+        // Aplicar stock mínimo estándar a todas las sucursales
+        for (const sucursal of sucursales) {
+          if (producto) {
+            // Si estamos editando, actualizar stock mínimo
+            await actualizarStockMinimo({
+              productoId,
+              sucursalId: sucursal.id,
+              stockMinimo: formData.stockMinimo
+            })
+          } else {
+            // Si es nuevo, inicializar inventario
+            await inicializarInventario({
+              productoId,
+              sucursalId: sucursal.id,
+              cantidadInicial: 0,
+              stockMinimo: formData.stockMinimo
+            })
+          }
+        }
+      }
+
+      setLoading(false)
       router.push('/dashboard/productos')
       router.refresh()
     } else {
+      setLoading(false)
       setError(result.error || 'Error al guardar producto')
     }
   }
@@ -142,7 +181,23 @@ export default function ProductoForm({ producto }: ProductoFormProps) {
               placeholder="Ej: unidad, kg, litro"
             />
           </div>
-          
+
+          {/* Stock Mínimo Estándar */}
+          <div className="space-y-2">
+            <Label htmlFor="stockMinimo">Stock Mínimo *</Label>
+            <Input
+              id="stockMinimo"
+              type="number"
+              min="0"
+              step="1"
+              value={formData.stockMinimo}
+              onChange={(e) => setFormData({ ...formData, stockMinimo: parseInt(e.target.value) || 0 })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Este valor se aplicará a todas las sucursales como nivel mínimo de inventario
+            </p>
+          </div>
+
           {formData.costoUnitario > 0 && formData.precioVenta > 0 && (
             <div className="p-4 bg-muted rounded-lg">
               <div className="text-sm text-muted-foreground">Margen de Ganancia</div>
