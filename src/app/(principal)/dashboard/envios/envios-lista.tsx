@@ -6,11 +6,12 @@ import { Card, CardContent } from '@/compartido/componentes/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/compartido/componentes/ui/table'
 import { actualizarEstadoEnvio } from '@/caracteristicas/envios/acciones'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Printer, Pencil } from 'lucide-react'
+import { Printer, Pencil, Calendar } from 'lucide-react'
 import Link from 'next/link'
+import { agruparPorDia } from '@/compartido/lib/formateo-fechas'
 
 type Envio = {
   id: string
@@ -34,6 +35,9 @@ const estadoConfig = {
 export default function EnviosLista({ envios }: { envios: Envio[] }) {
   const router = useRouter()
   const [loadingEstado, setLoadingEstado] = useState<string | null>(null)
+
+  // Agrupar envíos por día (memoizado para evitar recálculo en cada render)
+  const enviosAgrupados = useMemo(() => agruparPorDia(envios), [envios])
 
   const handleImprimir = (envio: Envio) => {
     const fecha = format(new Date(envio.createdAt), "dd 'de' MMMM yyyy", { locale: es })
@@ -144,38 +148,141 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
     return idx < flujo.length - 1 ? flujo[idx + 1] : null
   }
   
+  const renderEnvioCard = (envio: Envio) => {
+    const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
+    const proximoEstado = getProximoEstado(envio.estado)
+
+    return (
+      <Card key={envio.id} className="overflow-hidden hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="font-mono text-sm font-medium">#{envio.id.slice(0, 8)}</div>
+              <div className="text-xs text-muted-foreground">
+                {format(new Date(envio.createdAt), 'HH:mm', { locale: es })}
+              </div>
+            </div>
+            <Badge variant={config.variant}>{config.label}</Badge>
+          </div>
+
+          <div className="space-y-2 mb-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">De:</span>
+              <span className="font-medium">{envio.sucursalOrigen.nombre}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">A:</span>
+              <span className="font-medium">{envio.sucursalDestino.nombre}</span>
+            </div>
+          </div>
+
+          <div className="bg-muted rounded-md p-3 mb-3">
+            <div className="text-xs font-medium mb-2">Productos:</div>
+            <div className="text-xs space-y-1">
+              {envio.items.slice(0, 2).map((item, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span>{item.producto.nombre}</span>
+                  <span className="font-medium">×{item.cantidadSolicitada}</span>
+                </div>
+              ))}
+              {envio.items.length > 2 && (
+                <div className="text-muted-foreground text-center pt-1">
+                  +{envio.items.length - 2} más
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(envio.estado === 'pendiente' || envio.estado === 'en_preparacion') && (
+              <Link href={`/dashboard/envios/${envio.id}/editar`} className="flex-1">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleImprimir(envio)}
+              className="flex-1"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
+            </Button>
+          </div>
+
+          {proximoEstado && (
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => handleCambiarEstado(envio.id, proximoEstado)}
+              disabled={loadingEstado === envio.id}
+            >
+              {loadingEstado === envio.id ? (
+                <span className="animate-pulse">Procesando...</span>
+              ) : (
+                `Cambiar a: ${estadoConfig[proximoEstado as keyof typeof estadoConfig].label}`
+              )}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <>
-      {/* Vista Desktop - Tabla */}
-      <Card className="hidden md:block">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Origen</TableHead>
-                <TableHead>Destino</TableHead>
-                <TableHead>Productos</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {envios.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No hay envíos registrados
-                  </TableCell>
-                </TableRow>
-              ) : (
-              envios.map((envio) => {
+      {envios.length === 0 ? (
+        <Card>
+          <CardContent className="text-center text-muted-foreground py-12">
+            <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No hay envíos registrados</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(enviosAgrupados).map(([dia, enviosDelDia]) => (
+            <div key={dia} className="space-y-3">
+              {/* Header del día */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-foreground">{dia}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {enviosDelDia.length} {enviosDelDia.length === 1 ? 'envío' : 'envíos'}
+                  </p>
+                </div>
+                <div className="h-px flex-1 bg-border"></div>
+              </div>
+
+              {/* Vista Desktop - Tabla */}
+              <Card className="hidden md:block">
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Hora</TableHead>
+                        <TableHead>Origen</TableHead>
+                        <TableHead>Destino</TableHead>
+                        <TableHead>Productos</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enviosDelDia.map((envio) => {
                 const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
                 const proximoEstado = getProximoEstado(envio.estado)
 
                 return (
                   <TableRow key={envio.id}>
                     <TableCell className="font-mono text-sm">#{envio.id.slice(0, 8)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(envio.createdAt), 'HH:mm', { locale: es })}
+                    </TableCell>
                     <TableCell>{envio.sucursalOrigen.nombre}</TableCell>
                     <TableCell>{envio.sucursalDestino.nombre}</TableCell>
                     <TableCell>
@@ -194,9 +301,6 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
                     </TableCell>
                     <TableCell>
                       <Badge variant={config.variant}>{config.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(envio.createdAt), 'dd MMM yyyy', { locale: es })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -237,108 +341,20 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
                     </TableCell>
                   </TableRow>
                 )
-              })
-            )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Vista Móvil - Cards */}
-      <div className="md:hidden space-y-3">
-        {envios.length === 0 ? (
-          <Card>
-            <CardContent className="text-center text-muted-foreground py-8">
-              No hay envíos registrados
-            </CardContent>
-          </Card>
-        ) : (
-          envios.map((envio) => {
-            const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
-            const proximoEstado = getProximoEstado(envio.estado)
-
-            return (
-              <Card key={envio.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="font-mono text-sm font-medium">#{envio.id.slice(0, 8)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(envio.createdAt), 'dd MMM yyyy', { locale: es })}
-                      </div>
-                    </div>
-                    <Badge variant={config.variant}>{config.label}</Badge>
-                  </div>
-
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">De:</span>
-                      <span className="font-medium">{envio.sucursalOrigen.nombre}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">A:</span>
-                      <span className="font-medium">{envio.sucursalDestino.nombre}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-muted rounded-md p-3 mb-3">
-                    <div className="text-xs font-medium mb-2">Productos:</div>
-                    <div className="text-xs space-y-1">
-                      {envio.items.slice(0, 2).map((item, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>{item.producto.nombre}</span>
-                          <span className="font-medium">×{item.cantidadSolicitada}</span>
-                        </div>
-                      ))}
-                      {envio.items.length > 2 && (
-                        <div className="text-muted-foreground text-center pt-1">
-                          +{envio.items.length - 2} más
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {(envio.estado === 'pendiente' || envio.estado === 'en_preparacion') && (
-                      <Link href={`/dashboard/envios/${envio.id}/editar`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Editar
-                        </Button>
-                      </Link>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleImprimir(envio)}
-                      className="flex-1"
-                    >
-                      <Printer className="w-4 h-4 mr-2" />
-                      Imprimir
-                    </Button>
-                  </div>
-
-                  {proximoEstado && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => handleCambiarEstado(envio.id, proximoEstado)}
-                      disabled={loadingEstado === envio.id}
-                    >
-                      {loadingEstado === envio.id ? (
-                        <span className="animate-pulse">Procesando...</span>
-                      ) : (
-                        `Cambiar a: ${estadoConfig[proximoEstado as keyof typeof estadoConfig].label}`
-                      )}
-                    </Button>
-                  )}
+              })}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
-            )
-          })
-        )}
-      </div>
+
+              {/* Vista Móvil - Cards */}
+              <div className="md:hidden space-y-3">
+                {enviosDelDia.map((envio) => renderEnvioCard(envio))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }

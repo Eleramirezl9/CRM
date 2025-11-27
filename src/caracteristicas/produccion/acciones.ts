@@ -15,6 +15,7 @@ export async function registrarProduccion(data: {
   unidadesPorContenedor: number
   observaciones?: string
   turno?: Turno
+  forzarNuevo?: boolean  // Nueva opción para forzar crear producto duplicado
 }) {
   try {
     const session = await verifySession()
@@ -59,34 +60,97 @@ export async function registrarProduccion(data: {
     // Normalizar a solo fecha (sin hora)
     fechaProduccion.setHours(0, 0, 0, 0)
 
-    const produccion = await prisma.produccionDiaria.upsert({
+    // NUEVO: Verificar si ya existe una producción para este producto/fecha/turno con numeroSecuencia = 1
+    const produccionExistente = await prisma.produccionDiaria.findFirst({
       where: {
-        fecha_productoId_turno: {
-          fecha: fechaProduccion,
-          productoId: data.productoId,
-          turno,
-        },
-      },
-      update: {
-        cantidadContenedores: data.cantidadContenedores,
-        unidadesPorContenedor: data.unidadesPorContenedor,
-        totalUnidades,
-        observaciones: data.observaciones,
-      },
-      create: {
         fecha: fechaProduccion,
         productoId: data.productoId,
-        cantidadContenedores: data.cantidadContenedores,
-        unidadesPorContenedor: data.unidadesPorContenedor,
-        totalUnidades,
-        observaciones: data.observaciones,
-        registradoPor: parseInt(session.user.id),
         turno,
+        numeroSecuencia: 1, // Solo verificar la primera
       },
       include: {
         producto: true,
       },
     })
+
+    // Si existe y no se forzó crear uno nuevo, retornar indicando que ya existe
+    if (produccionExistente && !data.forzarNuevo) {
+      return {
+        success: false,
+        error: 'DUPLICATE_FOUND',
+        existente: {
+          id: produccionExistente.id,
+          productoNombre: produccionExistente.producto.nombre,
+          cantidadContenedores: produccionExistente.cantidadContenedores,
+          unidadesPorContenedor: produccionExistente.unidadesPorContenedor,
+          totalUnidades: produccionExistente.totalUnidades,
+          firmado: produccionExistente.enviado,
+        }
+      }
+    }
+
+    // Si se forzó crear nuevo O no existe, crear un nuevo registro
+    let produccion
+
+    if (data.forzarNuevo && produccionExistente) {
+      // Obtener el máximo número de secuencia actual para este producto/fecha/turno
+      const maxSecuencia = await prisma.produccionDiaria.findFirst({
+        where: {
+          fecha: fechaProduccion,
+          productoId: data.productoId,
+          turno,
+        },
+        orderBy: {
+          numeroSecuencia: 'desc',
+        },
+        select: {
+          numeroSecuencia: true,
+        },
+      })
+
+      const nuevoNumeroSecuencia = (maxSecuencia?.numeroSecuencia || 0) + 1
+
+      // Crear nueva producción con sufijo en observaciones
+      const sufijo = `#${nuevoNumeroSecuencia}`
+      const observacionesConSufijo = data.observaciones
+        ? `${sufijo} - ${data.observaciones}`
+        : `Producción adicional ${sufijo}`
+
+      produccion = await prisma.produccionDiaria.create({
+        data: {
+          fecha: fechaProduccion,
+          productoId: data.productoId,
+          numeroSecuencia: nuevoNumeroSecuencia,
+          cantidadContenedores: data.cantidadContenedores,
+          unidadesPorContenedor: data.unidadesPorContenedor,
+          totalUnidades,
+          observaciones: observacionesConSufijo,
+          registradoPor: parseInt(session.user.id),
+          turno,
+        },
+        include: {
+          producto: true,
+        },
+      })
+    } else {
+      // Crear normalmente con numeroSecuencia = 1
+      produccion = await prisma.produccionDiaria.create({
+        data: {
+          fecha: fechaProduccion,
+          productoId: data.productoId,
+          numeroSecuencia: 1,
+          cantidadContenedores: data.cantidadContenedores,
+          unidadesPorContenedor: data.unidadesPorContenedor,
+          totalUnidades,
+          observaciones: data.observaciones,
+          registradoPor: parseInt(session.user.id),
+          turno,
+        },
+        include: {
+          producto: true,
+        },
+      })
+    }
 
     // Registrar auditoría
     await registrarAuditoria({
@@ -101,6 +165,7 @@ export async function registrarProduccion(data: {
         totalUnidades,
         cantidadContenedores: data.cantidadContenedores,
         unidadesPorContenedor: data.unidadesPorContenedor,
+        duplicado: data.forzarNuevo || false,
       },
     })
 
@@ -878,6 +943,58 @@ export async function actualizarTurno(id: string, turno: Turno) {
     }
 
     return { success: false, error: 'Error al actualizar turno' }
+  }
+}
+
+// Eliminar producción (solo si no está firmada)
+export async function eliminarProduccion(id: string) {
+  try {
+    const session = await verifySession()
+
+    const permisoCheck = await checkPermiso(PERMISOS.PRODUCCION_EDITAR)
+    if (!permisoCheck.authorized) {
+      return { success: false, error: permisoCheck.error || 'No tienes permisos para eliminar producción' }
+    }
+
+    // Validar que la producción existe
+    const produccionExistente = await prisma.produccionDiaria.findUnique({
+      where: { id },
+      include: { producto: true },
+    })
+
+    if (!produccionExistente) {
+      return { success: false, error: 'Producción no encontrada' }
+    }
+
+    // Validar que no esté firmada
+    if (produccionExistente.enviado || produccionExistente.firmadoPor) {
+      return { success: false, error: 'No se puede eliminar una producción que ya fue firmada' }
+    }
+
+    // Eliminar la producción
+    await prisma.produccionDiaria.delete({
+      where: { id },
+    })
+
+    // Registrar auditoría
+    await registrarAuditoria({
+      usuarioId: parseInt(session.user.id),
+      accion: 'DELETE_PRODUCCION',
+      entidad: 'ProduccionDiaria',
+      entidadId: id,
+      detalles: {
+        productoId: produccionExistente.productoId,
+        productoNombre: produccionExistente.producto.nombre,
+        turno: produccionExistente.turno,
+        totalUnidades: produccionExistente.totalUnidades,
+      },
+    })
+
+    revalidatePath('/dashboard/produccion')
+    return { success: true }
+  } catch (error) {
+    console.error('Error al eliminar producción:', error)
+    return { success: false, error: 'Error al eliminar producción' }
   }
 }
 

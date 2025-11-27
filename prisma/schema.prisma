@@ -288,6 +288,7 @@ model ProduccionDiaria {
   id                    String    @id @default(cuid())
   fecha                 DateTime  @default(now()) @db.Date
   productoId            String    @map("producto_id")
+  numeroSecuencia       Int       @default(1) @map("numero_secuencia") // Para permitir duplicados del mismo producto en el mismo día
   cantidadContenedores  Int       @default(0) @map("cantidad_contenedores") // Ej: 100 latas
   unidadesPorContenedor Int       @default(1) @map("unidades_por_contenedor") // Ej: 24 panes por lata
   totalUnidades         Int       @default(0) @map("total_unidades") // 100 * 24 = 2400
@@ -306,7 +307,7 @@ model ProduccionDiaria {
   usuarioFirma         Usuario? @relation("FirmaProduccion", fields: [firmadoPor], references: [id])
   usuarioConfirmacion  Usuario? @relation("ConfirmacionBodega", fields: [confirmadoPor], references: [id])
 
-  @@unique([fecha, productoId, turno])
+  @@unique([fecha, productoId, turno, numeroSecuencia])
   @@map("produccion_diaria")
 }
 

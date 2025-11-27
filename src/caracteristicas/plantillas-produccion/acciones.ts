@@ -309,10 +309,11 @@ export async function aplicarPlantilla(data: unknown) {
 
       const produccion = await prisma.produccionDiaria.upsert({
         where: {
-          fecha_productoId_turno: {
+          fecha_productoId_turno_numeroSecuencia: {
             fecha: fechaProduccion,
             productoId: item.productoId,
-            turno
+            turno,
+            numeroSecuencia: 1
           }
         },
         update: {
@@ -327,7 +328,8 @@ export async function aplicarPlantilla(data: unknown) {
           unidadesPorContenedor: item.unidadesPorContenedor,
           totalUnidades,
           registradoPor: parseInt(session.user.id),
-          turno
+          turno,
+          numeroSecuencia: 1
         },
         include: {
           producto: true

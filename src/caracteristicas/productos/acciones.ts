@@ -182,7 +182,7 @@ export async function eliminarProducto(id: string) {
       return { success: false, error: permisoCheck.error || 'No tienes permisos para eliminar productos' }
     }
 
-    // Verificar si tiene inventario
+    // Verificar si tiene inventario activo
     const inventarios = await prisma.inventario.findMany({
       where: { productoId: id },
     })
@@ -191,6 +191,29 @@ export async function eliminarProducto(id: string) {
       return { success: false, error: 'No se puede eliminar un producto con inventario activo' }
     }
 
+    // Verificar si tiene relaciones que no permiten eliminación
+    const [envioItems, ventaItems, movimientos, devoluciones, producciones, plantillaItems] = await Promise.all([
+      prisma.envioItem.count({ where: { productoId: id } }),
+      prisma.ventaItem.count({ where: { productoId: id } }),
+      prisma.movimientoInventario.count({ where: { productoId: id } }),
+      prisma.devolucion.count({ where: { productoId: id } }),
+      prisma.produccionDiaria.count({ where: { productoId: id } }),
+      prisma.plantillaProduccionItem.count({ where: { productoId: id } })
+    ])
+
+    if (envioItems > 0 || ventaItems > 0 || movimientos > 0 || devoluciones > 0 || producciones > 0 || plantillaItems > 0) {
+      return {
+        success: false,
+        error: 'No se puede eliminar el producto porque tiene registros históricos asociados (envíos, ventas, movimientos, devoluciones, producciones o plantillas)'
+      }
+    }
+
+    // Eliminar registros de inventario con cantidad 0 antes de eliminar el producto
+    await prisma.inventario.deleteMany({
+      where: { productoId: id },
+    })
+
+    // Ahora eliminar el producto
     await prisma.producto.delete({
       where: { id },
     })

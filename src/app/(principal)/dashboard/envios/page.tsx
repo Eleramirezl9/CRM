@@ -1,5 +1,5 @@
 import { obtenerEnvios, sugerirEnvios } from '@/caracteristicas/envios/acciones'
-import EnviosLista from './envios-lista'
+import CalendarioEnvios from './calendario-envios'
 import SugerenciasEnvios from './sugerencias-envios'
 import { Button } from '@/compartido/componentes/ui/button'
 import { PageTitle } from '@/compartido/componentes/PageTitle'
@@ -29,9 +29,19 @@ export default async function EnviosPage() {
         </Link>
       </div>
 
-      {sugerencias.length > 0 && <SugerenciasEnvios sugerencias={sugerencias} />}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sugerencias - Ocupa 1 columna */}
+        {sugerencias.length > 0 && (
+          <div className="lg:col-span-1">
+            <SugerenciasEnvios sugerencias={sugerencias} />
+          </div>
+        )}
 
-      <EnviosLista envios={envios} />
+        {/* Calendario - Ocupa 2 columnas o todo el espacio si no hay sugerencias */}
+        <div className={sugerencias.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}>
+          <CalendarioEnvios envios={envios} />
+        </div>
+      </div>
     </div>
   )
 }

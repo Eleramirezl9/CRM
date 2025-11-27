@@ -128,11 +128,24 @@ function ItemProduccion({ produccion, usuario }: { produccion: Produccion, usuar
     }
   }
 
+  // Extraer el sufijo de las observaciones si existe (ej: "#2")
+  const sufijo = produccion.observaciones?.match(/^#(\d+)/)
+  const productoNombre = sufijo
+    ? `${produccion.producto.nombre} ${sufijo[0]}`
+    : produccion.producto.nombre
+
   return (
     <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <h3 className="font-semibold">{produccion.producto.nombre}</h3>
+          <h3 className="font-semibold flex items-center gap-2">
+            {productoNombre}
+            {sufijo && (
+              <Badge variant="outline" className="text-xs">
+                Adicional
+              </Badge>
+            )}
+          </h3>
           <div className="text-sm text-muted-foreground mt-1">
             {produccion.cantidadContenedores} contenedores × {produccion.unidadesPorContenedor} unidades
           </div>

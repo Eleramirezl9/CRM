@@ -6,7 +6,7 @@ import { Input } from '@/compartido/componentes/ui/input'
 import { Label } from '@/compartido/componentes/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/compartido/componentes/ui/card'
 import { Textarea } from '@/compartido/componentes/ui/textarea'
-import { registrarProduccion } from '@/caracteristicas/produccion/acciones'
+import { registrarProduccion, eliminarProduccion } from '@/caracteristicas/produccion/acciones'
 import { obtenerProductos } from '@/caracteristicas/productos/acciones'
 import { Package, Calculator, Search, Check, Sun, Moon } from 'lucide-react'
 import { detectarTurno, getTurnoLabel, getTurnoHorario, type Turno } from '@/compartido/lib/turnos'
@@ -138,7 +138,7 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
     }
   }, [selectedIndex, busqueda])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, forzarNuevo = false) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -163,9 +163,57 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
       return
     }
 
-    const result = await registrarProduccion(formData)
+    const result = await registrarProduccion({
+      ...formData,
+      forzarNuevo,
+    })
 
     setLoading(false)
+
+    // Manejar caso de duplicado detectado
+    if (!result.success && result.error === 'DUPLICATE_FOUND' && (result as any).existente) {
+      const existente = (result as any).existente
+      const productoNombre = existente.productoNombre
+
+      const mensaje = existente.firmado
+        ? `Ya registraste "${productoNombre}" hoy (${existente.totalUnidades} unidades) y ya fue firmado y enviado a bodega.\n\n¿Quieres crear una producción adicional? Se marcará como "${productoNombre} #2"`
+        : `Ya registraste "${productoNombre}" hoy (${existente.totalUnidades} unidades).\n\n¿Quieres:\n• ACTUALIZAR las cantidades del registro existente?\n• O crear una NUEVA producción adicional "${productoNombre} #2"?`
+
+      const opciones = existente.firmado
+        ? ['Crear producción adicional', 'Cancelar']
+        : ['Actualizar existente', 'Crear nueva producción', 'Cancelar']
+
+      const respuesta = window.confirm(mensaje)
+
+      if (respuesta) {
+        if (existente.firmado) {
+          // Si ya está firmado, solo permitir crear nueva
+          handleSubmit(e, true)
+        } else {
+          // Si no está firmado, preguntar qué hacer
+          const crearNueva = window.confirm(
+            'Presiona OK para CREAR UNA NUEVA producción adicional\nPresiona Cancelar para ACTUALIZAR la existente'
+          )
+
+          if (crearNueva) {
+            // Crear nueva producción
+            handleSubmit(e, true)
+          } else {
+            // Actualizar la existente (eliminar la vieja y crear nueva)
+            const confirmarActualizar = window.confirm(
+              `Se actualizará la producción existente con:\n\nContenedores: ${formData.cantidadContenedores}\nUnidades por contenedor: ${formData.unidadesPorContenedor}\nTotal: ${formData.cantidadContenedores * formData.unidadesPorContenedor} unidades\n\n¿Continuar?`
+            )
+
+            if (confirmarActualizar) {
+              // Eliminar producción existente y crear nueva
+              await eliminarProduccion(existente.id)
+              handleSubmit(e, false)
+            }
+          }
+        }
+      }
+      return
+    }
 
     if (result.success) {
       setSuccess(true)

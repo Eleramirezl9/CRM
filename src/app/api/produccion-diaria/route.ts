@@ -96,10 +96,11 @@ export async function POST(request: NextRequest) {
 
     const produccion = await prisma.produccionDiaria.upsert({
       where: {
-        fecha_productoId_turno: {
+        fecha_productoId_turno_numeroSecuencia: {
           fecha: fechaProduccion,
           productoId,
           turno,
+          numeroSecuencia: 1,
         },
       },
       update: {
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
         observaciones,
         registradoPor: parseInt(session.user.id),
         turno,
+        numeroSecuencia: 1,
       },
       include: {
         producto: true,
