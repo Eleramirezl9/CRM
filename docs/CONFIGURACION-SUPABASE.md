@@ -2,10 +2,10 @@
 
 Este proyecto está configurado para usar **Supabase** como base de datos PostgreSQL.
 
-## 📋 Credenciales del Proyecto
+## 📋 Proyecto Supabase
 
-**Proyecto:** Multi-Sucursal  
-**URL:** https://dsrscfajkbjneamnmhlh.supabase.co
+**Nota:** Este proyecto usa Supabase como base de datos PostgreSQL.
+Obtén tus credenciales desde el dashboard de Supabase.
 
 ### 🔑 Variables de Entorno
 

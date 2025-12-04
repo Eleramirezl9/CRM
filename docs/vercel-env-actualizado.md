@@ -2,38 +2,52 @@
 
 ## ✅ Variables CORRECTAS que DEBES configurar en Vercel:
 
-### 1. Base de Datos (Supabase) - ACTUALIZADAS
+### 1. Base de Datos (Supabase) - FORMATO ACTUALIZADO
 ```
-DATABASE_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-DB-PASSWORD]@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
 
-DIRECT_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-DB-PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres
 ```
 
 ### 2. Supabase Configuration
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://dsrscfajkbjneamnmhlh.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-REF].supabase.co
 
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzcnNjZmFqa2JqbmVhbW5taGxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNTQ4MDEsImV4cCI6MjA3NDkzMDgwMX0.D9X1003e4IN8_ibZi6_2yWigFWvi0fpqNfDuNH6zmWc
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR-SUPABASE-ANON-KEY]
 ```
 
 ### 3. NextAuth Configuration
 ```
-NEXTAUTH_URL=https://tu-app.vercel.app
-NEXTAUTH_SECRET=KkiISalZ3IEqJwScQXazBpBHoX7GPsXOlR+owTCyHrHW+llQLkwfrut61GEo0YRJgooaLby3Kmf4uc0SbCQ56Q==
+NEXTAUTH_URL=https://your-app.vercel.app
+NEXTAUTH_SECRET=[YOUR-GENERATED-SECRET]
 ```
 
 ## 🚨 CAMBIOS IMPORTANTES:
 
-### ❌ URLs ANTERIORES (INCORRECTAS):
+### ❌ URLs ANTERIORES (FORMATO ANTIGUO):
 ```
-DATABASE_URL=postgresql://postgres:aXDoaqSfJUsvTYMD@db.dsrscfajkbjneamnmhlh.supabase.co:5432/postgres?pgbouncer=true&connection_limit=1
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true&connection_limit=1
 ```
 
-### ✅ URLs NUEVAS (CORRECTAS):
+### ✅ URLs NUEVAS (FORMATO CORRECTO):
 ```
-DATABASE_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres
 ```
+
+## 📍 Dónde Obtener las Credenciales
+
+### Supabase Database URL
+1. Ve a: https://supabase.com/dashboard/project/_/settings/database
+2. En "Connection String", selecciona el modo "URI"
+3. Copia la URL con el nuevo formato de pooler (aws-1-us-east-2.pooler.supabase.com)
+4. Para DIRECT_URL, usa el puerto 5432 en lugar de 6543
+
+### Otros Valores
+- **NEXT_PUBLIC_SUPABASE_URL**: https://supabase.com/dashboard/project/_/settings/api
+- **NEXT_PUBLIC_SUPABASE_ANON_KEY**: https://supabase.com/dashboard/project/_/settings/api
+- **NEXTAUTH_SECRET**: Genera con `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+- **NEXTAUTH_URL**: Tu URL de producción en Vercel
 
 ## 🚀 PASOS PARA ACTUALIZAR EN VERCEL:
 
@@ -48,8 +62,8 @@ DIRECT_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-
 4. Marca todas como **Production**, **Preview**, y **Development**
 
 ### 3. Variables que DEBES actualizar:
-- ✅ `DATABASE_URL` → Nueva URL con pooler
-- ✅ `DIRECT_URL` → Nueva URL directa
+- ✅ `DATABASE_URL` → Nueva URL con pooler (puerto 6543)
+- ✅ `DIRECT_URL` → Nueva URL directa (puerto 5432)
 - ✅ `NEXTAUTH_URL` → Cambiar por tu URL real de Vercel
 
 ### 4. Después de actualizar:
@@ -59,8 +73,8 @@ DIRECT_URL=postgresql://postgres.dsrscfajkbjneamnmhlh:aXDoaqSfJUsvTYMD@aws-1-us-
 
 ## 🔍 Verificación:
 Después del redeploy, prueba:
-- https://tu-app.vercel.app/iniciar-sesion
-- Usa: `admin@empresa.com` / `admin123`
+- https://your-app.vercel.app/iniciar-sesion
+- Usa las credenciales de prueba del seed
 
 ## 📋 Lista de verificación:
 - [ ] DATABASE_URL actualizada con pooler
@@ -75,3 +89,12 @@ Después del redeploy, prueba:
 1. Verifica que todas las variables estén en **Production**
 2. Haz un redeploy completo
 3. Revisa los logs de Vercel en caso de errores
+
+## ⚠️ IMPORTANTE - SEGURIDAD
+
+**NUNCA commitees credenciales reales al repositorio Git.**
+
+Este archivo contiene solo PLACEHOLDERS. Obtén tus credenciales reales desde:
+- Supabase Dashboard: https://supabase.com/dashboard
+- Configura las credenciales SOLO en Vercel Dashboard
+- Rota credenciales periódicamente por seguridad

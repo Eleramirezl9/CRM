@@ -356,7 +356,7 @@ export async function confirmarRecepcionEnvio(
       }
 
       return { ...ajuste, estadoItem }
-    }).filter(Boolean)
+    }).filter((item): item is NonNullable<typeof item> => item !== null)
 
     await prisma.$transaction(async (tx) => {
       // Actualizar envío con estado de verificación

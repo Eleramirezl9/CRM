@@ -13,6 +13,7 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "check:secrets": "node scripts/check-secrets.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "jest --testMatch='**/unitarios/**/*.test.ts'",
     "test:unit:watch": "jest --testMatch='**/unitarios/**/*.test.ts' --watch",

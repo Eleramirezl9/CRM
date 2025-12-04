@@ -9,16 +9,16 @@ Can't reach database server at `db.dsrscfajkbjneamnmhlh.supabase.co:5432`
 
 ### 1. Actualizar URL de Conexión en Vercel
 
-Ve a tu dashboard de Vercel y actualiza la variable `DATABASE_URL` con esta versión mejorada:
+Ve a tu dashboard de Vercel y actualiza la variable `DATABASE_URL` con el formato correcto:
 
 ```
-DATABASE_URL=postgresql://postgres.aXDoaqSfJUsvTYMD@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-DB-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 ```
 
-### 2. URL Alternativa (si la primera no funciona):
+### 2. URL Alternativa (conexión directa - solo para migraciones):
 
 ```
-DATABASE_URL=postgresql://postgres:aXDoaqSfJUsvTYMD@db.dsrscfajkbjneamnmhlh.supabase.co:5432/postgres?sslmode=require
+DATABASE_URL=postgresql://postgres:[YOUR-DB-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require
 ```
 
 ### 3. Pasos en Vercel Dashboard:

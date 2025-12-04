@@ -29,20 +29,8 @@ git push -u origin main
 
 ### Variables de Entorno Requeridas:
 
-```env
-# Supabase Database
-DATABASE_URL=postgresql://postgres:aXDoaqSfJUsvTYMD@db.dsrscfajkbjneamnmhlh.supabase.co:5432/postgres?pgbouncer=true&connection_limit=1
-DIRECT_URL=postgresql://postgres:aXDoaqSfJUsvTYMD@db.dsrscfajkbjneamnmhlh.supabase.co:5432/postgres
 
-# Supabase API
-NEXT_PUBLIC_SUPABASE_URL=https://dsrscfajkbjneamnmhlh.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzcnNjZmFqa2JqbmVhbW5taGxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNTQ4MDEsImV4cCI6MjA3NDkzMDgwMX0.D9X1003e4IN8_ibZi6_2yWigFWvi0fpqNfDuNH6zmWc
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzcnNjZmFqa2JqbmVhbW5taGxoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTM1NDgwMSwiZXhwIjoyMDc0OTMwODAxfQ.nJl3MqBs9dyyfvz5TzwCieLtVm-CHKUUF5YDSg2yyKI
 
-# NextAuth
-NEXTAUTH_URL=https://tu-app.vercel.app
-NEXTAUTH_SECRET=KkiISalZ3IEqJwScQXazBpBHoX7GPsXOlR+owTCyHrHW+llQLkwfrut61GEo0YRJgooaLby3Kmf4uc0SbCQ56Q==
-```
 
 **⚠️ IMPORTANTE:** 
 - Cambia `NEXTAUTH_URL` por tu URL real de Vercel después del despliegue
