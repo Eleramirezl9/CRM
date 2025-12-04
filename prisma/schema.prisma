@@ -179,6 +179,7 @@ model Envio {
   sucursalOrigenId  String      @map("sucursal_origen_id")
   sucursalDestinoId String      @map("sucursal_destino_id")
   estado            String      @default("pendiente")
+  estadoVerificacion String?    @default("sin_verificar") @map("estado_verificacion") // "sin_verificar", "verificado_ok", "con_diferencias"
   fechaPlanificada  DateTime?   @map("fecha_planificada") @db.Date
   fechaEnvio        DateTime?   @map("fecha_envio")
   fechaEntrega      DateTime?   @map("fecha_entrega")
@@ -203,6 +204,8 @@ model EnvioItem {
   cantidadSolicitada Int      @map("cantidad_solicitada")
   cantidadEnviada    Int?     @map("cantidad_enviada")
   cantidadRecibida   Int?     @map("cantidad_recibida")
+  observaciones      String?  // "producto dañado", "faltaron X unidades", "todo correcto", etc.
+  estadoItem         String?  @default("pendiente") @map("estado_item") // "pendiente", "correcto", "faltante", "sobrante", "danado"
   envio              Envio    @relation(fields: [envioId], references: [id], onDelete: Cascade)
   producto           Producto @relation(fields: [productoId], references: [id])
 

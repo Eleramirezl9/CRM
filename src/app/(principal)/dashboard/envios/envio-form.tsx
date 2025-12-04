@@ -69,7 +69,7 @@ export default function EnvioForm() {
   }, [cantidades])
 
   const handleCantidadChange = (productoId: string, valor: string) => {
-    const cantidad = parseInt(valor) || 0
+    const cantidad = Math.min(parseInt(valor) || 0, 999999)
     setCantidades(prev => ({
       ...prev,
       [productoId]: cantidad
@@ -210,6 +210,7 @@ export default function EnvioForm() {
                       <Input
                         type="number"
                         min="0"
+                        max="999999"
                         placeholder="0"
                         value={cantidades[producto.id] || ''}
                         onChange={(e) => handleCantidadChange(producto.id, e.target.value)}

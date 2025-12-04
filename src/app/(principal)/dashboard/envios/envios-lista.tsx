@@ -9,19 +9,23 @@ import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Printer, Pencil, Calendar } from 'lucide-react'
+import { Printer, Pencil, Calendar, CheckCircle, AlertTriangle, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { agruparPorDia } from '@/compartido/lib/formateo-fechas'
 
 type Envio = {
   id: string
   estado: string
+  estadoVerificacion?: string
   createdAt: Date
   sucursalOrigen: { nombre: string }
   sucursalDestino: { nombre: string }
   items: Array<{
     producto: { nombre: string }
     cantidadSolicitada: number
+    cantidadRecibida?: number
+    estadoItem?: string
+    observaciones?: string
   }>
 }
 
@@ -152,6 +156,14 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
     const config = estadoConfig[envio.estado as keyof typeof estadoConfig] || estadoConfig.pendiente
     const proximoEstado = getProximoEstado(envio.estado)
 
+    // Calcular información de verificación
+    const estadoVerificacion = envio.estadoVerificacion || 'sin_verificar'
+    const hayDiferencias = estadoVerificacion === 'con_diferencias'
+    const verificadoOk = estadoVerificacion === 'verificado_ok'
+    const itemsConProblemas = envio.items.filter(item =>
+      item.estadoItem && item.estadoItem !== 'correcto' && item.estadoItem !== 'pendiente'
+    ).length
+
     return (
       <Card key={envio.id} className="overflow-hidden hover:shadow-md transition-shadow">
         <CardContent className="p-4">
@@ -162,7 +174,21 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
                 {format(new Date(envio.createdAt), 'HH:mm', { locale: es })}
               </div>
             </div>
-            <Badge variant={config.variant}>{config.label}</Badge>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Badge variant={config.variant}>{config.label}</Badge>
+              {verificadoOk && (
+                <Badge variant="default" className="bg-green-500 text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  OK
+                </Badge>
+              )}
+              {hayDiferencias && (
+                <Badge variant="destructive" className="text-xs">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {itemsConProblemas} problema{itemsConProblemas !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2 mb-3">
@@ -193,7 +219,15 @@ export default function EnviosLista({ envios }: { envios: Envio[] }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {envio.estado === 'entregado' && (
+              <Link href={`/dashboard/envios/${envio.id}`} className="flex-1">
+                <Button variant="default" size="sm" className="w-full">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Detalle
+                </Button>
+              </Link>
+            )}
             {(envio.estado === 'pendiente' || envio.estado === 'en_preparacion') && (
               <Link href={`/dashboard/envios/${envio.id}/editar`} className="flex-1">
                 <Button variant="outline" size="sm" className="w-full">

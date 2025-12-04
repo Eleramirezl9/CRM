@@ -6,7 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/compartido/component
 import { Badge } from '@/compartido/componentes/ui/badge'
 import { Button } from '@/compartido/componentes/ui/button'
 import Link from 'next/link'
-import { Eye, Edit, Plus, TrendingUp, TrendingDown } from 'lucide-react'
+import {
+  Eye,
+  Edit,
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  Store,
+  Users,
+  BarChart3,
+  DollarSign,
+  Package,
+  MapPin
+} from 'lucide-react'
 
 export const revalidate = 60 // Revalidar cada minuto
 
@@ -54,15 +66,17 @@ export default async function SucursalesPage() {
       </div>
 
       {/* Estadísticas generales */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Sucursales</p>
-                <p className="text-2xl font-bold">{sucursales.length}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Sucursales</p>
+                <p className="text-xl sm:text-2xl font-bold">{sucursales.length}</p>
               </div>
-              <div className="text-2xl">🏢</div>
+              <div className="flex-shrink-0 ml-2">
+                <Store className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -70,13 +84,15 @@ export default async function SucursalesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Con Gerente</p>
-                <p className="text-2xl font-bold">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Con Gerente</p>
+                <p className="text-xl sm:text-2xl font-bold">
                   {sucursales.filter(s => s.gerente).length}
                 </p>
               </div>
-              <div className="text-2xl">👤</div>
+              <div className="flex-shrink-0 ml-2">
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -84,15 +100,17 @@ export default async function SucursalesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Promedio Cumplimiento</p>
-                <p className="text-2xl font-bold">
-                  {sucursales.length > 0 
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Promedio Cumplimiento</p>
+                <p className="text-xl sm:text-2xl font-bold">
+                  {sucursales.length > 0
                     ? Math.round(sucursales.reduce((acc, s) => acc + s.cumplimientoMeta, 0) / sucursales.length)
                     : 0}%
                 </p>
               </div>
-              <div className="text-2xl">📊</div>
+              <div className="flex-shrink-0 ml-2">
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -100,13 +118,15 @@ export default async function SucursalesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Ventas Totales</p>
-                <p className="text-2xl font-bold">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Ventas Totales</p>
+                <p className="text-xl sm:text-2xl font-bold break-words">
                   ${sucursales.reduce((acc, s) => acc + s.totalVentasMes, 0).toLocaleString()}
                 </p>
               </div>
-              <div className="text-2xl">💰</div>
+              <div className="flex-shrink-0 ml-2">
+                <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -120,7 +140,9 @@ export default async function SucursalesPage() {
         <CardContent>
           {sucursales.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-4xl mb-4">🏢</div>
+              <div className="mb-4 flex justify-center">
+                <Store className="h-16 w-16 text-muted-foreground" />
+              </div>
               <h3 className="text-lg font-semibold mb-2">No hay sucursales registradas</h3>
               <p className="text-muted-foreground mb-4">
                 Comienza creando tu primera sucursal
@@ -150,60 +172,67 @@ function SucursalCard({ sucursal }: { sucursal: any }) {
 
   return (
     <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <div className="text-2xl">🏪</div>
-          <div>
-            <h3 className="font-semibold text-lg">{sucursal.nombre}</h3>
+          <div className="flex-shrink-0">
+            <Store className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-lg truncate">{sucursal.nombre}</h3>
             <p className="text-sm text-muted-foreground">
               Código: <span className="font-mono">{sucursal.codigoUnico}</span>
             </p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Link href={`/dashboard/sucursales/${sucursal.id}/perfil`}>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
+
+        {/* Botones - Responsive */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Link href={`/dashboard/sucursales/${sucursal.id}/perfil`} className="flex-1 sm:flex-initial">
+            <Button variant="outline" size="sm" className="flex items-center gap-1 w-full sm:w-auto">
               <Eye className="h-4 w-4" />
-              Ver Perfil
+              <span className="hidden sm:inline">Ver Perfil</span>
+              <span className="sm:hidden">Ver</span>
             </Button>
           </Link>
-          <Link href={`/dashboard/sucursales/${sucursal.id}`}>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
+          <Link href={`/dashboard/sucursales/${sucursal.id}`} className="flex-1 sm:flex-initial">
+            <Button variant="outline" size="sm" className="flex items-center gap-1 w-full sm:w-auto">
               <Edit className="h-4 w-4" />
-              Editar
+              <span className="hidden sm:inline">Editar</span>
+              <span className="sm:hidden">Editar</span>
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+      {/* Info Grid - Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {/* Gerente */}
-        <div>
-          <p className="text-sm text-muted-foreground">Gerente</p>
-          <p className="font-medium">
+        <div className="col-span-2 sm:col-span-1">
+          <p className="text-xs sm:text-sm text-muted-foreground">Gerente</p>
+          <p className="font-medium text-sm sm:text-base truncate">
             {sucursal.gerente ? sucursal.gerente.nombre : 'Sin asignar'}
           </p>
         </div>
 
         {/* Meta vs Ventas */}
-        <div>
-          <p className="text-sm text-muted-foreground">Meta vs Ventas</p>
-          <p className="font-medium">
+        <div className="col-span-2 sm:col-span-1 lg:col-span-1">
+          <p className="text-xs sm:text-sm text-muted-foreground">Meta vs Ventas</p>
+          <p className="font-medium text-sm sm:text-base break-words">
             ${sucursal.totalVentasMes.toLocaleString()} / ${parseFloat(sucursal.metaVentas.toString()).toLocaleString()}
           </p>
         </div>
 
         {/* Cumplimiento */}
         <div>
-          <p className="text-sm text-muted-foreground">Cumplimiento</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Cumplimiento</p>
           <div className="flex items-center gap-2">
-            {isAlto && <TrendingUp className="h-4 w-4 text-green-500" />}
-            {isMedio && <TrendingDown className="h-4 w-4 text-yellow-500" />}
-            {isBajo && <TrendingDown className="h-4 w-4 text-red-500" />}
-            <Badge 
+            {isAlto && <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />}
+            {isMedio && <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 flex-shrink-0" />}
+            {isBajo && <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />}
+            <Badge
               variant={isAlto ? 'default' : isMedio ? 'secondary' : 'destructive'}
-              className={isAlto ? 'bg-green-500' : isMedio ? 'bg-yellow-500' : ''}
+              className={`${isAlto ? 'bg-green-500' : isMedio ? 'bg-yellow-500' : ''} text-xs sm:text-sm`}
             >
               {cumplimiento.toFixed(0)}%
             </Badge>
@@ -212,13 +241,16 @@ function SucursalCard({ sucursal }: { sucursal: any }) {
 
         {/* Inventario */}
         <div>
-          <p className="text-sm text-muted-foreground">Productos</p>
-          <p className="font-medium">{sucursal._count.inventarios} productos</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Productos</p>
+          <p className="font-medium text-sm sm:text-base flex items-center gap-1">
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            {sucursal._count.inventarios}
+          </p>
         </div>
       </div>
 
       {/* Barra de progreso */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
         <div
           className={`h-2 rounded-full transition-all ${
             isAlto ? 'bg-green-500' : isMedio ? 'bg-yellow-500' : 'bg-red-500'
@@ -229,8 +261,9 @@ function SucursalCard({ sucursal }: { sucursal: any }) {
 
       {/* Dirección */}
       {sucursal.direccion && (
-        <p className="text-sm text-muted-foreground mt-2">
-          📍 {sucursal.direccion}
+        <p className="text-xs sm:text-sm text-muted-foreground break-words flex items-center gap-1">
+          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+          {sucursal.direccion}
         </p>
       )}
     </div>

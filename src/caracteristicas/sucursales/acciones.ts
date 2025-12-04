@@ -295,7 +295,14 @@ export async function obtenerOperacionDia(sucursalId: string, fecha: Date) {
   }
 }
 
-export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ productoId: string; cantidadRecibida: number }>) {
+export async function confirmarRecepcionEnvio(
+  envioId: string,
+  ajustes: Array<{
+    productoId: string
+    cantidadRecibida: number
+    observaciones?: string
+  }>
+) {
   try {
     const session = await getServerSession()
     if (!session) {
@@ -328,12 +335,36 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
     const fechaHoy = new Date()
     fechaHoy.setHours(0, 0, 0, 0)
 
+    // Determinar el estado de verificación general del envío
+    let hayDiferencias = false
+    const itemsConEstado = ajustes.map(ajuste => {
+      const item = envio.items.find(i => i.productoId === ajuste.productoId)
+      if (!item) return null
+
+      const diferencia = ajuste.cantidadRecibida - item.cantidadSolicitada
+      let estadoItem = 'correcto'
+
+      if (diferencia < 0) {
+        estadoItem = 'faltante'
+        hayDiferencias = true
+      } else if (diferencia > 0) {
+        estadoItem = 'sobrante'
+        hayDiferencias = true
+      } else if (ajuste.observaciones && ajuste.observaciones.toLowerCase().includes('dañ')) {
+        estadoItem = 'danado'
+        hayDiferencias = true
+      }
+
+      return { ...ajuste, estadoItem }
+    }).filter(Boolean)
+
     await prisma.$transaction(async (tx) => {
-      // Actualizar envío
+      // Actualizar envío con estado de verificación
       await tx.envio.update({
         where: { id: envioId },
         data: {
           estado: 'entregado',
+          estadoVerificacion: hayDiferencias ? 'con_diferencias' : 'verificado_ok',
           fechaEntrega: new Date(),
           confirmadoPor: parseInt(session.user.id),
           fechaConfirmacion: new Date(),
@@ -341,7 +372,7 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
       })
 
       // Actualizar inventarios
-      for (const ajuste of ajustes) {
+      for (const ajuste of itemsConEstado) {
         const item = envio.items.find(i => i.productoId === ajuste.productoId)
         if (!item) continue
 
@@ -380,7 +411,7 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
           },
         })
 
-        // Actualizar item del envío
+        // Actualizar item del envío con toda la información de seguimiento
         await tx.envioItem.update({
           where: {
             envioId_productoId: {
@@ -390,6 +421,8 @@ export async function confirmarRecepcionEnvio(envioId: string, ajustes: Array<{ 
           },
           data: {
             cantidadRecibida,
+            observaciones: ajuste.observaciones || null,
+            estadoItem: ajuste.estadoItem,
           },
         })
       }

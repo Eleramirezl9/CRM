@@ -399,10 +399,11 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
                 id="cantidadContenedores"
                 type="number"
                 min="1"
+                max="999999"
                 value={formData.cantidadContenedores || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  cantidadContenedores: parseInt(e.target.value) || 0
+                  cantidadContenedores: Math.min(parseInt(e.target.value) || 0, 999999)
                 })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -425,10 +426,11 @@ export default function ProduccionForm({ onSuccess }: { onSuccess?: () => void }
                 id="unidadesPorContenedor"
                 type="number"
                 min="1"
+                max="999999"
                 value={formData.unidadesPorContenedor || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  unidadesPorContenedor: parseInt(e.target.value) || 0
+                  unidadesPorContenedor: Math.min(parseInt(e.target.value) || 0, 999999)
                 })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
